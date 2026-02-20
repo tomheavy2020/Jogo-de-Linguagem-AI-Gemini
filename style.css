@@ -532,6 +532,17 @@ select.search-field option { background: var(--dark); color: var(--white); }
   padding: 1.5rem;
 }
 
+/* Remove dark overlay specifically from Caiobá carousel to keep images clear */
+.nbhd-c1 .nbhd-overlay {
+  background: none;
+}
+
+/* Add slight text shadow to maintain legibility without the dark overlay */
+.nbhd-c1 .nbhd-name,
+.nbhd-c1 .nbhd-count {
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
 .nbhd-name {
   font-family: var(--font-display);
   font-size: 1.4rem;
