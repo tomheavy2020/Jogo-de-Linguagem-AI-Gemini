@@ -605,6 +605,22 @@ select.search-field option { background: var(--dark); color: var(--white); }
   margin-top: 3.5rem;
 }
 
+.nested-carousel {
+  height: 100% !important;
+  margin-top: 0 !important;
+}
+
+.nested-carousel .carousel-item {
+  width: 100% !important;
+  min-width: unset !important;
+}
+
+.nested-carousel img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
 .carousel-mini-track {
   display: flex;
   height: 100%;

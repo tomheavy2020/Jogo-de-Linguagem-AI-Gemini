@@ -25,33 +25,36 @@ document.querySelectorAll('.prop-fav').forEach(btn => {
 });
 
 /* ----- Infinite Carousel Logic ----- */
-const setupCarousel = () => {
-  const track = document.querySelector('.carousel-mini-track');
-  if (!track) return;
+const setupCarousels = () => {
+  const tracks = document.querySelectorAll('.carousel-mini-track');
 
-  const items = Array.from(track.children);
-  if (items.length === 0) return;
+  tracks.forEach(track => {
+    const items = Array.from(track.children);
+    if (items.length === 0) return;
 
-  // Clone items for infinite loop
-  items.forEach(item => {
-    const clone = item.cloneNode(true);
-    track.appendChild(clone);
+    // Clone items for infinite loop
+    items.forEach(item => {
+      const clone = item.cloneNode(true);
+      track.appendChild(clone);
+    });
+
+    const updateAnimation = () => {
+      // Force a reflow to get correct widths
+      const trackWidth = Array.from(track.children).slice(0, items.length).reduce((acc, item) => acc + item.offsetWidth, 0);
+      const speed = 50; // px per second
+      const duration = trackWidth / speed;
+
+      track.style.animation = 'none';
+      track.offsetHeight; // trigger reflow
+      track.style.animation = `miniSlide ${duration}s linear infinite`;
+    };
+
+    // Initial setup after a short delay
+    setTimeout(updateAnimation, 500);
+
+    window.addEventListener('resize', updateAnimation);
   });
-
-  const updateAnimation = () => {
-    // Force a reflow to get correct widths
-    const itemWidths = Array.from(track.children).slice(0, items.length).reduce((acc, item) => acc + item.offsetWidth, 0);
-    const duration = itemWidths / 50; // 50px per second
-    track.style.animation = 'none';
-    track.offsetHeight; // trigger reflow
-    track.style.animation = `miniSlide ${duration}s linear infinite`;
-  };
-
-  // Initial setup after a short delay to ensure images are loaded or layout is ready
-  setTimeout(updateAnimation, 500);
-
-  window.addEventListener('resize', updateAnimation);
 };
 
-// Initialize carousel
-setupCarousel();
+// Initialize carousels
+setupCarousels();
