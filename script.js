@@ -39,18 +39,30 @@ const setupCarousels = () => {
     });
 
     const updateAnimation = () => {
+      const isNested = track.closest('.nested-carousel');
+
       // Force a reflow to get correct widths
-      const trackWidth = Array.from(track.children).slice(0, items.length).reduce((acc, item) => acc + item.offsetWidth, 0);
-      const speed = 50; // px per second
+      let trackWidth = Array.from(track.children).slice(0, items.length).reduce((acc, item) => acc + item.offsetWidth, 0);
+
+      // Fallback if images are not loaded yet (nested cards are usually ~300-400px)
+      if (trackWidth === 0 && isNested) {
+        trackWidth = items.length * track.parentElement.offsetWidth;
+      }
+
+      // Increased speed: 80 for main gallery, 120 for nested carousels to make them more dynamic
+      const speed = isNested ? 120 : 80;
       const duration = trackWidth / speed;
 
-      track.style.animation = 'none';
-      track.offsetHeight; // trigger reflow
-      track.style.animation = `miniSlide ${duration}s linear infinite`;
+      if (duration > 0) {
+        track.style.animation = 'none';
+        track.offsetHeight; // trigger reflow
+        track.style.animation = `miniSlide ${duration}s linear infinite`;
+      }
     };
 
-    // Initial setup after a short delay
+    // Initial setup after a short delay, and again after window load
     setTimeout(updateAnimation, 500);
+    window.addEventListener('load', updateAnimation);
 
     window.addEventListener('resize', updateAnimation);
   });
