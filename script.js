@@ -49,8 +49,9 @@ const setupCarousels = () => {
         trackWidth = items.length * track.parentElement.offsetWidth;
       }
 
-      // Increased speed: 80 for main gallery, 120 for nested carousels to make them more dynamic
-      const speed = isNested ? 120 : 80;
+      // Use data-speed attribute if present, otherwise default to context-based speed
+      const container = track.closest('.carousel-mini');
+      const speed = container.dataset.speed || (isNested ? 120 : 80);
       const duration = trackWidth / speed;
 
       if (duration > 0) {
