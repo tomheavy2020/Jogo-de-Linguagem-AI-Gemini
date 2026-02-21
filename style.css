@@ -1007,7 +1007,10 @@ footer {
   .hero-stats { display: none; }
   .property-grid     { grid-template-columns: 1fr; }
   .neighborhood-grid { grid-template-columns: 1fr; }
-  .neighborhood-card:first-child { grid-column: span 1; }
+  .neighborhood-card:first-child {
+    grid-column: span 1;
+    aspect-ratio: 16/10;
+  }
   .steps-grid        { grid-template-columns: 1fr; }
   .testimonials-grid { grid-template-columns: 1fr; }
   #contato           { grid-template-columns: 1fr; gap: 3rem; }
