@@ -616,6 +616,21 @@ select.search-field option { background: var(--dark); color: var(--white); }
   margin-top: 3.5rem;
 }
 
+/* Base styles for all carousel items to prevent collapse */
+.carousel-item {
+  height: 100%;
+  flex: 0 0 400px; /* Default width for main gallery */
+  position: relative;
+  background: var(--sand); /* Fallback color */
+}
+
+.carousel-item img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block;
+}
+
 .nested-carousel {
   height: 100% !important;
   width: 100% !important;
@@ -627,17 +642,9 @@ select.search-field option { background: var(--dark); color: var(--white); }
 
 .nested-carousel .carousel-item {
   height: 100% !important;
-  /* Garante que o item ocupe a largura total da "janela" do card */
+  flex: 0 0 100cqw !important;
   width: 100cqw !important;
   min-width: 100cqw !important;
-  flex: 0 0 100cqw !important;
-}
-
-.nested-carousel img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  display: block;
 }
 
 .carousel-mini-track {
@@ -651,22 +658,9 @@ select.search-field option { background: var(--dark); color: var(--white); }
   animation-play-state: paused;
 }
 
-.carousel-item {
-  height: 100%;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.carousel-mini-track > img,
-.carousel-item img {
-  height: 100%;
-  width: auto;
-  object-fit: cover;
-  display: block;
-}
-
 /* Item destacado com texto */
 .carousel-item.featured {
+  flex: 0 0 600px;
   min-width: 600px;
   background: var(--dark);
 }
@@ -981,9 +975,12 @@ footer {
    ANIMATIONS ON SCROLL
 ========================================================= */
 .fade-up {
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+/* Only hide if JS is ready to handle it */
+.js-enabled .fade-up:not(.visible) {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
 }
 .fade-up.visible {
   opacity: 1;
