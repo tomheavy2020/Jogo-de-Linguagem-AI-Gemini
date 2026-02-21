@@ -73,7 +73,7 @@ const setupCarousels = () => {
       }
 
       // Use data-speed attribute if present, otherwise default to context-based speed
-      const speed = container.dataset.speed || (isNested ? 120 : 80);
+      const speed = container.dataset.speed || (isNested ? 150 : 100);
       const duration = trackWidth / speed;
 
       if (duration > 0) {
