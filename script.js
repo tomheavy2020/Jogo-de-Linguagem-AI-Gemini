@@ -57,23 +57,34 @@ const setupCarousels = () => {
     const updateAnimation = () => {
       const isNested = track.closest('.nested-carousel');
       const container = track.closest('.carousel-mini');
+      if (!container) return;
 
       // Force a reflow to get correct widths
-      let trackWidth = Array.from(track.children).slice(0, items.length).reduce((acc, item) => acc + item.offsetWidth, 0);
+      let trackWidth = 0;
+      const originalItems = Array.from(track.children).slice(0, items.length);
 
-      // Fallback if images are not loaded yet or are broken
+      originalItems.forEach(item => {
+        trackWidth += item.offsetWidth;
+      });
+
+      // Fallback if offsetWidth is 0 (e.g. hidden or not rendered yet)
       if (trackWidth === 0) {
+        const containerWidth = container.offsetWidth || window.innerWidth;
         if (isNested) {
-          trackWidth = items.length * container.offsetWidth;
+          trackWidth = items.length * containerWidth;
         } else {
-          // Fallback to CSS defined widths if offsetWidth fails
-          const defaultWidth = track.querySelector('.featured') ? 600 : 400;
-          trackWidth = items.length * defaultWidth;
+          const isMobile = window.innerWidth <= 768;
+          if (isMobile) {
+            trackWidth = items.length * (containerWidth * 0.85);
+          } else {
+            const hasFeatured = track.querySelector('.featured');
+            trackWidth = (items.length - (hasFeatured ? 1 : 0)) * 400 + (hasFeatured ? 600 : 0);
+          }
         }
       }
 
       // Use data-speed attribute if present, otherwise default to context-based speed
-      const speed = container.dataset.speed || (isNested ? 150 : 100);
+      const speed = container.dataset.speed || (isNested ? 120 : 80);
       const duration = trackWidth / speed;
 
       if (duration > 0) {
@@ -83,11 +94,27 @@ const setupCarousels = () => {
       }
     };
 
-    // Initial setup after a short delay, and again after window load
+    // Initial setup
     setTimeout(updateAnimation, 500);
     window.addEventListener('load', updateAnimation);
 
-    window.addEventListener('resize', updateAnimation);
+    // Watch for image loads
+    track.querySelectorAll('img').forEach(img => {
+      if (img.complete) {
+        updateAnimation();
+      } else {
+        img.addEventListener('load', updateAnimation);
+      }
+    });
+
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        updateAnimation();
+      });
+      ro.observe(track);
+    } else {
+      window.addEventListener('resize', updateAnimation);
+    }
   });
 };
 
