@@ -79,6 +79,21 @@ a   { text-decoration: none; color: inherit; }
   color: var(--gold);
 }
 
+.btn-hero-cta {
+  padding: 1rem 2.5rem;
+  font-size: 0.85rem;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--white);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.btn-hero-cta:hover {
+  background: var(--white);
+  color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
 /* =========================================================
    NAVBAR
 ========================================================= */
@@ -95,16 +110,6 @@ a   { text-decoration: none; color: inherit; }
 #navbar.scrolled {
   background: rgba(255,255,255,0.97);
   box-shadow: 0 1px 0 var(--sand);
-}
-
-#navbar:not(.scrolled) .nav-logo-main,
-#navbar:not(.scrolled) .nav-links a,
-#navbar:not(.scrolled) .nav-cta {
-  color: #ffffff;
-  border-color: rgba(255,255,255,0.4);
-}
-#navbar:not(.scrolled) .nav-logo-sub {
-  color: var(--gold-lt);
 }
 
 .nav-logo {
@@ -198,7 +203,7 @@ a   { text-decoration: none; color: inherit; }
 
   background: linear-gradient(
     to right,
-    rgba(0,0,0,0.80) 0%,
+    rgba(0,0,0,0.5) 0%,
     rgba(0,0,0,0.65) 60%,
     rgba(0,0,0,0.0) 100%
   );
@@ -374,16 +379,6 @@ select.search-field option { background: var(--dark); color: var(--white); }
   background: var(--white);
 }
 
-.map-container {
-  position: relative;
-  overflow: hidden;
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' style='font-size:30px'><text y='35'>🐎</text></svg>"), auto;
-}
-
-.map-container iframe {
-  pointer-events: auto;
-}
-
 .section-header {
   display: flex;
   align-items: flex-end;
@@ -391,22 +386,6 @@ select.search-field option { background: var(--dark); color: var(--white); }
   margin-bottom: 3.5rem;
   flex-wrap: wrap;
   gap: 1rem;
-}
-
-.header-buttons {
-  display: flex;
-  gap: 1rem;
-}
-
-@media (max-width: 600px) {
-  .header-buttons {
-    width: 100%;
-    flex-direction: column;
-  }
-  .header-buttons .btn {
-    width: 100%;
-    justify-content: center;
-  }
 }
 
 /* 3-column property grid */
@@ -549,37 +528,35 @@ select.search-field option { background: var(--dark); color: var(--white); }
 .nbhd-bg {
   position: absolute; inset: 0;
   transition: transform 0.6s ease;
+  background-size: cover;
+  background-position: center;
 }
 .neighborhood-card:hover .nbhd-bg { transform: scale(1.07); }
 
 /* placeholder gradients */
 .nbhd-c1 .nbhd-bg { background: linear-gradient(145deg,#8a7a5a,#b8a47e); }
-.nbhd-c2 .nbhd-bg { background: linear-gradient(145deg,#7a8a6a,#a0b48e); }
+.nbhd-c2 .nbhd-bg { background: url('https://placehold.co/600x400?text=Riviera') center/cover; }
 .nbhd-c3 .nbhd-bg { background: linear-gradient(145deg,#5a7a8a,#7aA0b4); }
-.nbhd-c4 .nbhd-bg { background: linear-gradient(145deg,#8a5a7a,#b47aa0); }
-.nbhd-c5 .nbhd-bg { background: linear-gradient(145deg,#5a6a8a,#7a8ab4); }
+.nbhd-c4 .nbhd-bg { background: url('https://placehold.co/600x400?text=Guaratuba') center/cover; }
+.nbhd-c5 .nbhd-bg { background: url('https://placehold.co/600x400?text=Pontal') center/cover; }
 
 .nbhd-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(26,23,20,0.75) 40%, transparent);
+  background: linear-gradient(to top, rgba(26,23,20,0.45) 30%, transparent 80%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   padding: 1.5rem;
 }
 
-/* Remove dark overlay specifically from Caiobá and Centro carousel to keep images clear */
+/* Ensure neighborhoods with carousels have clear visibility and readable text */
 .nbhd-c1 .nbhd-overlay,
 .nbhd-c3 .nbhd-overlay {
-  background: none;
+  background: linear-gradient(to top, rgba(26,23,20,0.4) 0%, transparent 60%);
 }
 
-/* Add slight text shadow to maintain legibility without the dark overlay */
-.nbhd-c1 .nbhd-name,
-.nbhd-c1 .nbhd-count,
-.nbhd-c3 .nbhd-name,
-.nbhd-c3 .nbhd-count {
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+.nbhd-name, .nbhd-count {
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
 }
 
 .nbhd-name {
@@ -707,7 +684,7 @@ select.search-field option { background: var(--dark); color: var(--white); }
 .featured-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, rgba(26,23,20,0.95) 30%, rgba(26,23,20,0.6) 100%);
+  background: linear-gradient(to right, rgba(26,23,20,0.6) 35%, rgba(26,23,20,0.3) 100%);
   color: var(--white);
   padding: 2.5rem;
   display: flex;
@@ -780,6 +757,19 @@ select.search-field option { background: var(--dark); color: var(--white); }
 
 .featured-btn {
   margin-top: 1rem;
+}
+
+/* =========================================================
+   LOCALIZAÇÃO / MAPA
+========================================================= */
+#map-section {
+  padding: 0;
+  background: var(--white);
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><text y="24" font-size="24">🐎</text></svg>'), auto;
+}
+
+.map-container {
+  line-height: 0;
 }
 
 @keyframes miniSlide {
@@ -1065,6 +1055,7 @@ footer {
   .steps-grid        { grid-template-columns: 1fr; }
   .testimonials-grid { grid-template-columns: 1fr; }
   #contato           { grid-template-columns: 1fr; gap: 3rem; }
+  .contact-cta-wrapper { text-align: center; }
   .footer-top        { grid-template-columns: 1fr; }
   .form-row          { grid-template-columns: 1fr; }
   .search-wrap       { grid-template-columns: 1fr; }
@@ -1075,19 +1066,13 @@ footer {
 
   /* Responsividade do Carrossel */
   .carousel-mini {
-    height: 500px;
-  }
-  .carousel-item {
-    flex: 0 0 85vw;
+    height: 450px;
   }
   .carousel-item.featured {
-    flex: 0 0 90vw;
-    min-width: 90vw;
+    min-width: 85vw;
   }
   .featured-overlay {
-    padding: 1.25rem;
-    background: linear-gradient(to bottom, rgba(26,23,20,0.7) 0%, rgba(26,23,20,0.95) 50%);
-    align-items: flex-end;
+    padding: 1.5rem;
   }
   .featured-title {
     font-size: 1.4rem;
@@ -1102,176 +1087,144 @@ footer {
   }
 }
 
-/* =========================================================
-   SUB-PAGES (Venda/Locação)
-========================================================= */
-.subpage-hero {
-  position: relative;
-  padding: 12rem 5vw 8rem;
-  background: var(--dark);
-  color: var(--white);
-  text-align: left;
-  overflow: hidden;
-}
-
-.venda-hero {
-  background: linear-gradient(135deg, var(--dark) 0%, #3a322b 100%);
-}
-
-.locacao-hero {
-  background: linear-gradient(135deg, #24211e 0%, var(--dark) 100%);
-}
-
-.subpage-hero .hero-content {
-  background: none;
-  padding: 0;
-  max-width: 800px;
-}
-
-.property-listing-section {
-  padding: 6rem 5vw;
-  border-bottom: 1px solid var(--sand);
-}
-
-.property-listing-section.alt-bg {
-  background: var(--cream);
-}
-
-.listing-container {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 5vw;
-  align-items: center;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.listing-container.reverse .listing-gallery {
-  order: 2;
-}
-.listing-container.reverse .listing-details {
-  order: 1;
-}
-
-.listing-gallery {
-  height: 480px;
-  position: relative;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-}
-
-.listing-details h2 {
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 4vw, 3rem);
-  font-weight: 400;
-  margin-bottom: 1.5rem;
-  color: var(--dark);
-}
-
-.listing-tag {
-  display: inline-block;
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  color: var(--gold);
-  margin-bottom: 1rem;
-  font-weight: 500;
-}
-
-.listing-details p {
-  font-size: 1rem;
-  line-height: 1.8;
-  color: var(--mid);
-  margin-bottom: 2rem;
-}
-
-.amenities-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  margin-bottom: 2.5rem;
-}
-
-.amenities-list li {
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  color: var(--light);
-}
-
-.amenities-list i {
-  color: var(--gold);
-  width: 16px;
-  text-align: center;
-}
-
-.listing-cta {
-  display: inline-block;
-  padding: 1rem 2.5rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  font-weight: 500;
-  transition: var(--transition);
-}
-
-@media (max-width: 1024px) {
-  .listing-container {
-    grid-template-columns: 1fr;
-    gap: 3rem;
-  }
-  .listing-container.reverse .listing-gallery,
-  .listing-container.reverse .listing-details {
-    order: unset;
-  }
-  .listing-gallery {
-    height: 400px;
-  }
-}
-
-/* =========================================================
-   WHATSAPP FLOAT
-========================================================= */
+/* ===================== WHATSAPP FLOAT ===================== */
 .whatsapp-float {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
   width: 60px;
   height: 60px;
+  bottom: 40px;
+  right: 40px;
   background-color: #25d366;
   color: #FFF;
   border-radius: 50px;
   text-align: center;
   font-size: 30px;
-  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
-  z-index: 999;
+  box-shadow: 2px 2px 3px #999;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s ease, background-color 0.3s ease;
+  text-decoration: none;
+  transition: all 0.3s ease;
 }
 
 .whatsapp-float:hover {
-  transform: scale(1.1);
   background-color: #128c7e;
+  transform: scale(1.1);
   color: #FFF;
-}
-
-.whatsapp-icon {
-  width: 32px;
-  height: 32px;
-  fill: white;
 }
 
 @media (max-width: 768px) {
   .whatsapp-float {
-    bottom: 20px;
-    right: 20px;
     width: 50px;
     height: 50px;
+    bottom: 20px;
+    right: 20px;
+    font-size: 25px;
   }
-  .whatsapp-icon {
-    width: 26px;
-    height: 26px;
+}
+
+/* ===================== SUBPAGE HEROS ===================== */
+.venda-hero {
+  background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('fotos/hero1.jpg');
+}
+
+.locacao-hero {
+  background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('fotos/hero2.jpg');
+}
+
+.subpage-hero {
+  height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background-size: cover;
+  background-position: center;
+  color: var(--white);
+  padding: 0 20px;
+}
+
+/* ===================== PROPERTY LISTING ===================== */
+.property-listing-section {
+  padding: 80px 0;
+}
+
+.alt-bg {
+  background-color: var(--cream);
+}
+
+.listing-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.listing-container.reverse {
+  direction: rtl;
+}
+
+.listing-container.reverse > * {
+  direction: ltr;
+}
+
+.listing-gallery {
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.listing-details h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  color: var(--dark);
+}
+
+.listing-tag {
+  display: inline-block;
+  background: var(--gold);
+  color: var(--white);
+  padding: 5px 15px;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+}
+
+.amenities-list {
+  list-style: none;
+  margin: 25px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.amenities-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #666;
+}
+
+.amenities-list i {
+  color: var(--gold);
+}
+
+.listing-cta {
+  display: inline-block;
+  padding: 15px 35px;
+  margin-top: 10px;
+}
+
+@media (max-width: 992px) {
+  .listing-container, .listing-container.reverse {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    direction: ltr;
   }
 }
