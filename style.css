@@ -550,13 +550,16 @@ select.search-field option { background: var(--dark); color: var(--white); }
 }
 
 /* Ensure neighborhoods with carousels have clear visibility and readable text */
-.nbhd-c1 .nbhd-overlay,
-.nbhd-c3 .nbhd-overlay {
+.nbhd-c1 .nbhd-overlay {
   background: linear-gradient(to top, rgba(26,23,20,0.4) 0%, transparent 60%);
 }
 
+.nbhd-c3 .nbhd-overlay {
+  background: none;
+}
+
 .nbhd-name, .nbhd-count {
-  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .nbhd-name {
