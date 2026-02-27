@@ -542,7 +542,6 @@ select.search-field option { background: var(--dark); color: var(--white); }
 
 .nbhd-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(26,23,20,0.45) 30%, transparent 80%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -550,16 +549,34 @@ select.search-field option { background: var(--dark); color: var(--white); }
 }
 
 /* Ensure neighborhoods with carousels have clear visibility and readable text */
-.nbhd-c1 .nbhd-overlay {
-  background: linear-gradient(to top, rgba(26,23,20,0.4) 0%, transparent 60%);
+.nbhd-c2 .nbhd-overlay,
+.nbhd-c4 .nbhd-overlay,
+.nbhd-c5 .nbhd-overlay {
+  background: linear-gradient(to top, rgba(26,23,20,0.45) 30%, transparent 80%);
 }
 
-.nbhd-c3 .nbhd-overlay {
-  background: none;
+/* Remove overlays for neighborhood cards with carousels (Caiobá and Centro) */
+.nbhd-c1, .nbhd-c1 *,
+.nbhd-c3, .nbhd-c3 * {
+  background: none !important;
+  box-shadow: none !important;
 }
 
 .nbhd-name, .nbhd-count {
   text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+/* Specific text styling for carousel-based neighborhood cards */
+.nbhd-c1 .nbhd-name,
+.nbhd-c3 .nbhd-name {
+  color: var(--dark) !important;
+  text-shadow: none !important;
+}
+
+.nbhd-c1 .nbhd-count,
+.nbhd-c3 .nbhd-count {
+  color: var(--mid) !important;
+  text-shadow: none !important;
 }
 
 .nbhd-name {
@@ -640,7 +657,7 @@ select.search-field option { background: var(--dark); color: var(--white); }
   height: 100%;
   flex: 0 0 400px; /* Default width for main gallery */
   position: relative;
-  background: var(--sand); /* Fallback color */
+  background: transparent; /* Fallback color */
 }
 
 .carousel-item img {
