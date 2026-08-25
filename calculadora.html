@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX CALC · HP PRIME</title>
+    <style>
+        :root {
+            --metal-dark: #2a2a2e;
+            --metal-mid: #3a3a3e;
+            --metal-light: #5a5a5e;
+            --aluminum: #8a8a8e;
+            --key-main: #d4d4d8;
+            --key-secondary: #b8b8bc;
+            --key-special: #4a90d9;
+            --key-enter: #e8a020;
+            --key-alpha: #6a5acd;
+            --screen-bg: #e8f0f8;
+            --screen-text: #1a1a2e;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html,body {
+            background:#1a1a1e; color:#fff;
+            font-family:'Segoe UI',system-ui,sans-serif;
+            height:100dvh; width:100dvw; overflow:hidden;
+            position:fixed; user-select:none;
+        }
+        .calc-body {
+            display:flex; flex-direction:column;
+            height:100dvh; max-width:420px; margin:0 auto;
+            background:linear-gradient(160deg, var(--metal-mid), var(--metal-dark));
+            border-radius:18px; padding:12px; gap:8px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        .calc-header {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:4px 6px; flex-shrink:0;
+        }
+        .calc-brand { font-size:11px; font-weight:700; letter-spacing:2px; color:var(--aluminum); }
+        .calc-close { background:transparent; border:1px solid #ff3b3b; color:#ff3b3b; padding:3px 10px; border-radius:6px; cursor:pointer; font-size:9px; font-family:inherit; }
+
+        /* Tela estilo HP Prime */
+        .calc-screen {
+            flex-shrink:0; border-radius:10px; padding:8px;
+            background:var(--screen-bg);
+            box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .screen-status {
+            display:flex; justify-content:space-between;
+            font-size:8px; color:#666; margin-bottom:4px;
+        }
+        .screen-apps {
+            display:grid; grid-template-columns:repeat(4,1fr);
+            gap:4px; margin-bottom:4px;
+        }
+        .app-icon {
+            aspect-ratio:1; border-radius:8px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            font-size:16px; transition:all 0.15s;
+        }
+        .app-icon:active { transform:scale(0.9); }
+        .app-icon.purple { background:#8b5cf6; }
+        .app-icon.blue { background:#3b82f6; }
+        .app-icon.red { background:#ef4444; }
+        .app-icon.green { background:#22c55e; }
+        .app-icon.orange { background:#f59e0b; }
+        .app-icon.cyan { background:#06b6d4; }
+        .app-icon.pink { background:#ec4899; }
+        .app-icon.gray { background:#6b7280; }
+        .app-label { font-size:7px; color:#333; text-align:center; margin-top:1px; }
+        .screen-display {
+            background:#fff; border-radius:6px; padding:8px;
+            text-align:right; font-size:22px; font-weight:700;
+            color:var(--screen-text); min-height:36px;
+            box-shadow:inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .screen-tabs {
+            display:flex; gap:6px; margin-top:4px;
+        }
+        .screen-tab {
+            flex:1; padding:4px; border-radius:4px; cursor:pointer;
+            font-size:8px; text-align:center; background:#d4d8e0;
+            color:#333; transition:all 0.15s;
+        }
+        .screen-tab:active { background:#b8bcc4; }
+        .screen-tab.active { background:#4a90d9; color:#fff; }
+
+        /* Dial central (D-pad) */
+        .dial-area {
+            flex-shrink:0; display:flex; justify-content:center; padding:2px;
+        }
+        .dial {
+            width:80px; height:80px; border-radius:50%;
+            background:radial-gradient(circle, var(--metal-light), var(--metal-dark));
+            position:relative; box-shadow:0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .dial-center {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            width:24px; height:24px; border-radius:50%;
+            background:var(--aluminum); box-shadow:inset 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .dial-btn {
+            position:absolute; width:18px; height:18px;
+            background:var(--key-main); border-radius:4px;
+            font-size:9px; display:flex; align-items:center; justify-content:center;
+            cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.4);
+        }
+        .dial-btn.up { top:2px; left:50%; transform:translateX(-50%); }
+        .dial-btn.down { bottom:2px; left:50%; transform:translateX(-50%); }
+        .dial-btn.left { left:2px; top:50%; transform:translateY(-50%); }
+        .dial-btn.right { right:2px; top:50%; transform:translateY(-50%); }
+        .dial-btn:active { background:var(--key-special); }
+
+        /* Teclado */
+        .keypad {
+            flex:1; display:grid; grid-template-columns:repeat(5,1fr);
+            gap:4px; min-height:0;
+        }
+        .key {
+            border-radius:8px; cursor:pointer; position:relative;
+            display:flex; align-items:center; justify-content:center;
+            font-size:14px; font-weight:700; color:#1a1a1a;
+            background:linear-gradient(180deg, var(--key-main), var(--key-secondary));
+            box-shadow:0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.4);
+            transition:all 0.1s;
+        }
+        .key:active {
+            transform:translateY(2px);
+            box-shadow:0 1px 2px rgba(0,0,0,0.4);
+        }
+        .key .secondary {
+            position:absolute; top:3px; left:5px;
+            font-size:6px; color:#4a90d9; font-weight:700;
+        }
+        .key.special { background:linear-gradient(180deg, #5a9de0, #3a7dc0); color:#fff; }
+        .key.enter {
+            background:linear-gradient(180deg, #f0b040, #d09020);
+            grid-column:span 2; color:#1a1a1a;
+        }
+        .key.alpha { background:linear-gradient(180deg, #7a6ae0, #5a4ac0); color:#fff; }
+        .key.func { background:linear-gradient(180deg, #8a8a8e, #6a6a6e); color:#fff; }
+    </style>
+</head>
+<body>
+    <div class="calc-body">
+        <div class="calc-header">
+            <span class="calc-brand">HP PRIME · MATRIX</span>
+            <button class="calc-close" onclick="window.location.href='/index.html'">✕</button>
+        </div>
+
+        <!-- Tela -->
+        <div class="calc-screen">
+            <div class="screen-status">
+                <span>10:30</span>
+                <span>🔋 80%</span>
+                <span>DEG</span>
+            </div>
+            <div class="screen-apps">
+                <div><div class="app-icon purple" onclick="calcFunc('sin')">sin</div><div class="app-label">Trig</div></div>
+                <div><div class="app-icon blue" onclick="calcFunc('log')">log</div><div class="app-label">Log</div></div>
+                <div><div class="app-icon red" onclick="calcFunc('sqrt')">√</div><div class="app-label">Raiz</div></div>
+                <div><div class="app-icon green" onclick="calcFunc('x2')">x²</div><div class="app-label">Pot</div></div>
+                <div><div class="app-icon orange" onclick="calcFunc('pi')">π</div><div class="app-label">PI</div></div>
+                <div><div class="app-icon cyan" onclick="calcFunc('fact')">n!</div><div class="app-label">Fat</div></div>
+                <div><div class="app-icon pink" onclick="calcFunc('abs')">|x|</div><div class="app-label">Abs</div></div>
+                <div><div class="app-icon gray" onclick="calcFunc('1x')">1/x</div><div class="app-label">Inv</div></div>
+            </div>
+            <div class="screen-display" id="calcDisplay">0</div>
+            <div class="screen-tabs">
+                <div class="screen-tab active">CALC</div>
+                <div class="screen-tab">GRÁFICO</div>
+                <div class="screen-tab">MEM</div>
+            </div>
+        </div>
+
+        <!-- Dial -->
+        <div class="dial-area">
+            <div class="dial">
+                <div class="dial-btn up" onclick="navigate('up')">▲</div>
+                <div class="dial-btn down" onclick="navigate('down')">▼</div>
+                <div class="dial-btn left" onclick="navigate('left')">◀</div>
+                <div class="dial-btn right" onclick="navigate('right')">▶</div>
+                <div class="dial-center"></div>
+            </div>
+        </div>
+
+        <!-- Teclado -->
+        <div class="keypad">
+            <button class="key alpha" onclick="inputNum('7')">7<span class="secondary">A</span></button>
+            <button class="key" onclick="inputNum('8')">8<span class="secondary">B</span></button>
+            <button class="key" onclick="inputNum('9')">9<span class="secondary">C</span></button>
+            <button class="key special" onclick="inputOp('/')">÷</button>
+            <button class="key func" onclick="clearAll()">AC</button>
+
+            <button class="key" onclick="inputNum('4')">4<span class="secondary">D</span></button>
+            <button class="key" onclick="inputNum('5')">5<span class="secondary">E</span></button>
+            <button class="key" onclick="inputNum('6')">6<span class="secondary">F</span></button>
+            <button class="key special" onclick="inputOp('*')">×</button>
+            <button class="key func" onclick="deleteLast()">DEL</button>
+
+            <button class="key" onclick="inputNum('1')">1<span class="secondary">G</span></button>
+            <button class="key" onclick="inputNum('2')">2<span class="secondary">H</span></button>
+            <button class="key" onclick="inputNum('3')">3<span class="secondary">I</span></button>
+            <button class="key special" onclick="inputOp('-')">−</button>
+            <button class="key func" onclick="inputPercent()">%</button>
+
+            <button class="key" onclick="inputNum('0')">0<span class="secondary">J</span></button>
+            <button class="key" onclick="inputDot()">.<span class="secondary">K</span></button>
+            <button class="key special" onclick="inputOp('+')">+</button>
+            <button class="key enter" onclick="calculate()">ENTER</button>
+            <button class="key func" onclick="toggleSign()">±</button>
+        </div>
+    </div>
+
+<script>
+// ================= CALCULADORA HP PRIME =================
+let expression = '';
+let result = '0';
+const display = document.getElementById('calcDisplay');
+
+function updateDisplay() {
+    display.textContent = expression || result;
+}
+
+function inputNum(n) { expression += n; updateDisplay(); }
+function inputOp(op) { expression += ' ' + op + ' '; updateDisplay(); }
+function inputDot() { if(!expression.endsWith('.')) { expression += '.'; updateDisplay(); } }
+function inputPercent() { expression += '%'; updateDisplay(); }
+
+function clearAll() { expression = ''; result = '0'; updateDisplay(); }
+function deleteLast() { expression = expression.trimEnd().slice(0,-1); updateDisplay(); }
+function toggleSign() {
+    if(expression.startsWith('-')) expression = expression.substring(1);
+    else expression = '-' + expression;
+    updateDisplay();
+}
+
+function calculate() {
+    try {
+        const expr = expression.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/%/g,'/100');
+        result = Function('"use strict";return(' + expr + ')')();
+        result = parseFloat(result.toFixed(8)).toString();
+        expression = '';
+        updateDisplay();
+    } catch(e) {
+        display.textContent = 'ERRO';
+        setTimeout(clearAll, 1000);
+    }
+}
+
+function calcFunc(f) {
+    const val = parseFloat(result) || 0;
+    const funcs = {
+        sin: Math.sin, cos: Math.cos, tan: Math.tan,
+        log: Math.log10, ln: Math.log,
+        sqrt: Math.sqrt, x2: x => x*x,
+        pi: () => Math.PI, fact: n => { let r=1; for(let i=2;i<=n;i++) r*=i; return r; },
+        abs: Math.abs, '1x': x => 1/x
+    };
+    if(funcs[f]) {
+        result = parseFloat(funcs[f](val).toFixed(8)).toString();
+        updateDisplay();
+    }
+}
+
+function navigate(dir) {
+    // Navegação do dial (simplificada)
+    const actions = { up: () => calcFunc('sqrt'), down: () => calcFunc('x2'), left: () => calcFunc('sin'), right: () => calcFunc('cos') };
+    if(actions[dir]) actions[dir]();
+}
+
+updateDisplay();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix OS - Rastreador</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; background: #020503; color: #00ff41; font-family: 'Courier New', monospace; overflow: hidden; }
+        #map { width: 100%; height: 100vh; z-index: 1; }
+        .hud {
+            position: absolute; top: 10px; left: 10px; z-index: 1000;
+            background: rgba(0,0,0,0.85); border: 1px solid #00ff41;
+            border-radius: 10px; padding: 10px; font-size: 12px;
+            box-shadow: 0 0 15px rgba(0,255,65,0.4);
+        }
+        .hud button {
+            background: #00ff41; color: #000; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 8px;
+        }
+        .hud button.stop { background: #ff3b3b; color: #fff; }
+        .trace-stats { margin-top: 5px; font-size: 10px; color: #aaffdd; }
+        .back-btn {
+            position: absolute; top: 10px; right: 10px; z-index: 1000;
+            background: rgba(0,0,0,0.8); border: 1px solid #00ff41; color: #00ff41;
+            padding: 8px 12px; border-radius: 8px; font-size: 12px; cursor: pointer;
+        }
+        .leaflet-interactive { filter: drop-shadow(0 0 5px #00ff41); }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="hud">
+        <div style="font-weight:bold; font-size:14px;">⬢ RASTREADOR GPS</div>
+        <div id="coords" style="margin-top:5px;">Lat: -- | Lng: --</div>
+        <div class="trace-stats" id="traceStats">Pontos de rastro: 0</div>
+        <button id="startBtn" onclick="startTracking()">▶ INICIAR RASTRO</button>
+        <button id="stopBtn" class="stop" style="display:none;" onclick="stopTracking()">■ PARAR RASTRO</button>
+    </div>
+    <button class="back-btn" onclick="window.location.href='index.html'">← VOLTAR</button>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([-15.7801, -47.9292], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        let userMarker = null, trackLine = null, tracePoints = [], watchId = null, isTracking = false;
+
+        function startTracking() {
+            if (!navigator.geolocation) { alert("Seu dispositivo não suporta geolocalização."); return; }
+            isTracking = true;
+            document.getElementById("startBtn").style.display = "none";
+            document.getElementById("stopBtn").style.display = "block";
+            if (!userMarker) userMarker = L.marker([-15.7801, -47.9292]).addTo(map);
+            watchId = navigator.geolocation.watchPosition(updatePosition, showError, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+        }
+
+        function updatePosition(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            document.getElementById("coords").innerText = `Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)}`;
+            userMarker.setLatLng([lat, lng]); map.setView([lat, lng]);
+            tracePoints.push([lat, lng]);
+            document.getElementById("traceStats").innerText = `Pontos de rastro: ${tracePoints.length}`;
+            if (trackLine) map.removeLayer(trackLine);
+            trackLine = L.polyline(tracePoints, { color: '#00ff41', weight: 4, opacity: 0.8 }).addTo(map);
+        }
+
+        function stopTracking() {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            isTracking = false;
+            document.getElementById("startBtn").style.display = "block";
+            document.getElementById("stopBtn").style.display = "none";
+            console.log("RASTRO COMPLETO:", tracePoints);
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED: alert("Você negou a permissão."); break;
+                case error.POSITION_UNAVAILABLE: alert("Localização indisponível."); break;
+                case error.TIMEOUT: alert("Tempo esgotado."); break;
+            }
+        }
+    </script>
+</body>
+</html>

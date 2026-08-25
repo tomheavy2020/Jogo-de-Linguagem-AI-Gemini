@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>MATRIX AI</title>
+<style>
+    :root { --neon:#00ff41; --cyan:#00f0ff; --gold:#ffb000; --red:#ff3b3b; --purple:#aa66ff; --panel:rgba(0,10,0,0.92); --border:rgba(0,255,65,0.3); }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { background:#000; color:var(--neon); font-family:'Courier New',monospace; height:100dvh; width:100dvw; overflow:hidden; position:fixed; user-select:none; }
+
+    .ai-container { display:flex; flex-direction:column; height:100dvh; max-width:700px; margin:0 auto; padding:10px; gap:8px; }
+
+    /* Header */
+    .ai-header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border:1px solid var(--border); border-radius:12px; background:var(--panel); flex-shrink:0; }
+    .ai-title { font-size:16px; font-weight:bold; letter-spacing:2px; text-shadow:0 0 15px var(--neon); }
+    .ai-header-btns { display:flex; gap:6px; }
+    .ai-btn { background:transparent; border:1px solid var(--border); color:var(--neon); padding:7px 12px; border-radius:8px; cursor:pointer; font-family:inherit; font-size:13px; }
+    .ai-btn:active { background:rgba(0,255,65,0.15); }
+    .ai-dot { width:7px; height:7px; border-radius:50%; background:var(--neon); animation:pulse 2s infinite; display:inline-block; margin-right:5px; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* Sidebar de histórico */
+    .history-panel {
+        position:fixed; left:-270px; top:0; bottom:0; width:270px;
+        background:var(--panel); border-right:2px solid var(--neon);
+        z-index:50; transition:left 0.3s; padding:14px;
+        display:flex; flex-direction:column; gap:8px; overflow-y:auto;
+    }
+    .history-panel.open { left:0; }
+    .history-title { font-size:14px; font-weight:bold; color:var(--gold); text-align:center; margin-bottom:4px; }
+    .history-item { padding:11px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:13px; display:flex; justify-content:space-between; align-items:center; gap:6px; }
+    .history-item:hover { background:rgba(0,255,65,0.1); }
+    .history-item.active { background:rgba(0,255,65,0.2); }
+    .history-item-title { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .history-del { background:none; border:none; color:var(--red); font-size:14px; cursor:pointer; flex-shrink:0; }
+    .history-new { padding:11px; background:linear-gradient(160deg,#0a3a0a,var(--neon)); border:none; color:#000; border-radius:8px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:bold; }
+    .history-clear { padding:9px; background:transparent; border:1px solid var(--red); color:var(--red); border-radius:8px; cursor:pointer; font-family:inherit; font-size:12px; }
+    .history-empty { font-size:12px; color:rgba(0,255,65,0.5); text-align:center; padding:10px; }
+
+    /* Modos */
+    .ai-modes { display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0; }
+    .mode-btn { background:var(--panel); border:1px solid var(--border); color:var(--neon); padding:8px 13px; border-radius:14px; cursor:pointer; font-family:inherit; font-size:12px; white-space:nowrap; transition:all 0.2s; }
+    .mode-btn.active { background:rgba(0,255,65,0.2); border-color:var(--neon); box-shadow:0 0 10px rgba(0,255,65,0.3); }
+
+    /* Mensagens */
+    .ai-messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:12px; }
+    .ai-msg { max-width:88%; padding:12px 16px; border-radius:12px; font-size:15px; line-height:1.55; animation:msgIn 0.3s; position:relative; word-wrap:break-word; }
+    @keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1} }
+    .ai-msg.user { align-self:flex-end; background:rgba(0,40,10,0.7); border:1px solid var(--border); }
+    .ai-msg.bot { align-self:flex-start; background:rgba(10,20,10,0.6); border:1px solid rgba(0,255,65,0.2); }
+    .ai-msg.bot code { color:var(--cyan); font-family:inherit; display:block; background:rgba(0,0,0,0.5); padding:10px; border-radius:6px; margin:6px 0; font-size:13px; white-space:pre-wrap; }
+    .msg-time { font-size:10px; color:rgba(0,255,65,0.4); margin-top:5px; }
+    .msg-actions { display:flex; gap:10px; margin-top:8px; }
+    .msg-action { font-size:12px; color:rgba(0,255,65,0.6); cursor:pointer; background:none; border:none; font-family:inherit; padding:0; }
+    .msg-action:hover { color:var(--neon); }
+
+    /* Resultado destacado */
+    .result-box { background:rgba(0,0,0,0.6); border:1px solid var(--gold); border-radius:8px; padding:12px; margin:6px 0; }
+    .result-value { font-size:24px; font-weight:bold; color:var(--gold); text-align:center; }
+
+    /* Sugestões rápidas */
+    .quick-chips { display:flex; gap:6px; flex-wrap:wrap; padding:0 12px 4px; flex-shrink:0; }
+    .quick-chip { font-size:12px; padding:6px 11px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--cyan); cursor:pointer; font-family:inherit; }
+
+    /* Input */
+    .ai-input-area { display:flex; gap:8px; padding:10px; border-top:1px solid var(--border); flex-shrink:0; align-items:flex-end; }
+    .ai-input { flex:1; padding:14px; background:rgba(0,0,0,0.8); border:1px solid var(--border); color:var(--neon); font-family:inherit; font-size:15px; border-radius:10px; outline:none; }
+    .ai-send { padding:14px 22px; background:linear-gradient(160deg,#0a3a0a,var(--neon)); border:none; color:#000; cursor:pointer; font-family:inherit; font-size:15px; font-weight:bold; border-radius:10px; }
+    .ai-send:disabled { opacity:0.4; }
+
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:40; display:none; }
+    .overlay.show { display:block; }
+
+    .ai-messages::-webkit-scrollbar { width:4px; }
+    .ai-messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeHistory()"></div>
+
+<!-- Painel de histórico -->
+<div class="history-panel" id="historyPanel">
+    <div class="history-title">📜 MATRIX CHATS</div>
+    <button class="history-new" onclick="newChat()">➕ NOVA CONVERSA</button>
+    <div id="historyList"></div>
+    <button class="history-clear" onclick="clearAllHistory()">🗑 LIMPAR TODO HISTÓRICO</button>
+</div>
+
+<div class="ai-container">
+    <div class="ai-header">
+        <span class="ai-title"><span class="ai-dot"></span>MATRIX AI</span>
+        <div class="ai-header-btns">
+            <button class="ai-btn" onclick="openHistory()">☰ CHATS</button>
+            <button class="ai-btn" onclick="window.location.href='/index.html'">✕</button>
+        </div>
+    </div>
+
+    <!-- Modos -->
+    <div class="ai-modes">
+        <button class="mode-btn active" data-mode="geral" onclick="setMode('geral', this)">💬 GERAL</button>
+        <button class="mode-btn" data-mode="calculo" onclick="setMode('calculo', this)">🧮 CÁLCULO</button>
+        <button class="mode-btn" data-mode="codigo" onclick="setMode('codigo', this)">💻 CÓDIGO</button>
+        <button class="mode-btn" data-mode="seguranca" onclick="setMode('seguranca', this)">🔐 SEGURANÇA</button>
+        <button class="mode-btn" data-mode="conversor" onclick="setMode('conversor', this)">🔄 CONVERSOR</button>
+        <button class="mode-btn" data-mode="resumo" onclick="setMode('resumo', this)">📚 RESUMO</button>
+    </div>
+
+    <div class="ai-messages" id="aiMessages">
+        <div class="ai-msg bot">👋 <b>MATRIX AI ONLINE</b><br>Como posso ajudar hoje?</div>
+    </div>
+
+    <div class="quick-chips" id="quickChips"></div>
+
+    <div class="ai-input-area">
+        <input class="ai-input" id="aiInput" placeholder="Pergunte qualquer coisa..." autocomplete="off" />
+        <button class="ai-send" id="sendBtn" onclick="sendAI()">▶</button>
+    </div>
+</div>
+
+<script>
+// ================= MATRIX AI (EVOLUÍDO) =================
+let currentMode = 'geral';
+let conversations = JSON.parse(localStorage.getItem('matrixAIChats') || '[]');
+let currentChatId = Date.now();
+let messages = [];
+
+const PLACEHOLDERS = {
+    geral: 'Pergunte qualquer coisa...',
+    calculo: 'Digite uma expressão matemática...',
+    codigo: 'Descreva o código que deseja...',
+    seguranca: 'Pergunte sobre segurança digital...',
+    conversor: 'Ex: 10 km em milhas, 30 c em f...',
+    resumo: 'Cole um texto para resumir...'
+};
+
+const QUICK_CHIPS = {
+    geral: ['O que você faz?', 'Me conte uma curiosidade', 'Que horas são?'],
+    calculo: ['125 * 48', '(15 + 30) / 3', '20% de 350'],
+    codigo: ['Função em Python', 'Loop em JavaScript', 'Ordenar uma lista'],
+    seguranca: ['O que é firewall?', 'O que é VPN?', 'Senha forte, como criar?'],
+    conversor: ['10 km em milhas', '30 c em f', '5 kg em libras'],
+    resumo: ['Como funciona o resumo?']
+};
+
+function setMode(mode, btn) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('aiInput').placeholder = PLACEHOLDERS[mode];
+    renderChips();
+}
+
+function renderChips() {
+    const box = document.getElementById('quickChips');
+    box.innerHTML = (QUICK_CHIPS[currentMode] || []).map(c =>
+        `<button class="quick-chip" onclick="useChip('${c.replace(/'/g, "\\'")}')">${c}</button>`
+    ).join('');
+}
+
+function useChip(text) {
+    document.getElementById('aiInput').value = text;
+    sendAI();
+}
+
+function openHistory() {
+    document.getElementById('historyPanel').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+    renderHistory();
+}
+
+function closeHistory() {
+    document.getElementById('historyPanel').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+}
+
+function renderHistory() {
+    const list = document.getElementById('historyList');
+    if (conversations.length === 0) {
+        list.innerHTML = '<div class="history-empty">Nenhuma conversa salva ainda.</div>';
+        return;
+    }
+    list.innerHTML = conversations.map(c => `
+        <div class="history-item ${c.id === currentChatId ? 'active' : ''}">
+            <span class="history-item-title" onclick="loadChat(${c.id})">${escapeHtml(c.title)}</span>
+            <button class="history-del" onclick="deleteChat(event, ${c.id})">✕</button>
+        </div>
+    `).join('');
+}
+
+function deleteChat(evt, id) {
+    evt.stopPropagation();
+    conversations = conversations.filter(c => c.id !== id);
+    localStorage.setItem('matrixAIChats', JSON.stringify(conversations));
+    renderHistory();
+    if (id === currentChatId) newChat();
+}
+
+function clearAllHistory() {
+    if (!confirm('Apagar todo o histórico de conversas?')) return;
+    conversations = [];
+    localStorage.setItem('matrixAIChats', JSON.stringify(conversations));
+    renderHistory();
+}
+
+function newChat() {
+    saveChat();
+    currentChatId = Date.now();
+    messages = [];
+    currentMode = 'geral';
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-mode="geral"]').classList.add('active');
+    document.getElementById('aiInput').placeholder = PLACEHOLDERS.geral;
+    document.getElementById('aiMessages').innerHTML = '<div class="ai-msg bot">👋 <b>MATRIX AI ONLINE</b><br>Como posso ajudar hoje?</div>';
+    renderChips();
+    closeHistory();
+}
+
+function loadChat(id) {
+    saveChat();
+    const chat = conversations.find(c => c.id === id);
+    if (chat) {
+        currentChatId = id;
+        messages = chat.messages;
+        renderMessages();
+        closeHistory();
+    }
+}
+
+function saveChat() {
+    if (messages.length > 1) {
+        const existing = conversations.findIndex(c => c.id === currentChatId);
+        const title = messages[0]?.text?.substring(0, 30) || 'Conversa';
+        const chat = { id: currentChatId, title, messages };
+        if (existing >= 0) conversations[existing] = chat;
+        else conversations.unshift(chat);
+        localStorage.setItem('matrixAIChats', JSON.stringify(conversations));
+    }
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function renderMessages() {
+    const area = document.getElementById('aiMessages');
+    area.innerHTML = messages.map(m => {
+        if (m.type === 'user') {
+            return `<div class="ai-msg user">${escapeHtml(m.text)}</div>`;
+        } else {
+            return `<div class="ai-msg bot">${m.text}${m.actions || ''}</div>`;
+        }
+    }).join('');
+    autoScroll();
+}
+
+function addProcessingIndicator() {
+    const area = document.getElementById('aiMessages');
+    const msg = document.createElement('div');
+    msg.className = 'ai-msg bot';
+    msg.id = 'processingMsg';
+    msg.innerHTML = '🤖 MATRIX AI<br><span style="color:var(--cyan);font-size:13px;">> ANALISANDO...<br>> PROCESSANDO CONSULTA...<br>> MATRIX CORE ATIVO...</span>';
+    area.appendChild(msg);
+    area.scrollTop = area.scrollHeight;
+}
+
+function removeProcessingIndicator() {
+    const msg = document.getElementById('processingMsg');
+    if (msg) msg.remove();
+}
+
+function sendAI() {
+    const input = document.getElementById('aiInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+
+    messages.push({ type: 'user', text });
+    input.value = '';
+    renderMessages();
+    updateChatTitle(text);
+    addProcessingIndicator();
+
+    setTimeout(() => {
+        removeProcessingIndicator();
+        const response = generateResponse(text);
+        messages.push({ type: 'bot', text: response.text, actions: response.actions });
+        renderMessages();
+        saveChat();
+        sendBtn.disabled = false;
+        input.focus();
+    }, 700);
+}
+
+function autoScroll() {
+    const area = document.getElementById('aiMessages');
+    area.scrollTop = area.scrollHeight;
+}
+
+function updateChatTitle(text) {
+    if (messages.length === 1) {
+        const title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
+        const chat = conversations.find(c => c.id === currentChatId);
+        if (chat) chat.title = title;
+    }
+}
+
+function generateResponse(text) {
+    const lower = text.toLowerCase();
+
+    // Hora / data
+    if (lower.includes('que horas') || lower.includes('horário') || lower === 'hora') {
+        const now = new Date();
+        return { text: '🕐 Agora são <b>' + now.toLocaleTimeString('pt-BR') + '</b> — ' + now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }) + '.' };
+    }
+
+    // Conversor de unidades
+    if (currentMode === 'conversor') {
+        const conv = convertUnits(text);
+        if (conv) {
+            return {
+                text: '🔄 CONVERSÃO:<br><div class="result-box"><div class="result-value">' + conv + '</div></div>',
+                actions: '<button class="msg-action" onclick="copyResult(\'' + conv.replace(/'/g, "\\'") + '\')">📋 Copiar</button>'
+            };
+        }
+        return { text: '🔄 Não entendi a conversão. Tente algo como: "10 km em milhas", "30 c em f", "5 kg em libras".' };
+    }
+
+    // Cálculo
+    if (currentMode === 'calculo' || /[\d]+\s*[+\-×÷x*/%]\s*[\d]/.test(text)) {
+        const result = calculate(text);
+        if (result !== null) {
+            return {
+                text: '📐 RESULTADO:<br><div class="result-box"><div class="result-value">' + result + '</div></div>',
+                actions: '<button class="msg-action" onclick="copyResult(\'' + result + '\')">📋 Copiar</button>'
+            };
+        }
+        if (currentMode === 'calculo') {
+            return { text: '🧮 Não consegui calcular essa expressão. Use apenas números e + - × ÷ % ( ).' };
+        }
+    }
+
+    // Código
+    if (currentMode === 'codigo' || lower.includes('python') || lower.includes('javascript') || lower.includes('código')) {
+        return {
+            text: buildCodeExample(lower),
+            actions: '<button class="msg-action" onclick="copyCode(this)">📋 Copiar código</button>'
+        };
+    }
+
+    // Segurança
+    if (currentMode === 'seguranca' || lower.includes('firewall') || lower.includes('vpn') || lower.includes('senha') || lower.includes('segurança') || lower.includes('https')) {
+        return { text: buildSecurityAnswer(lower) };
+    }
+
+    // Resumo
+    if (currentMode === 'resumo' || lower.includes('resum')) {
+        if (text.length > 60) {
+            return { text: '📚 <b>Resumo:</b><br>' + summarizeText(text) };
+        }
+        return { text: '📚 Me envie o texto que você quer resumir (pode colar um parágrafo inteiro)!' };
+    }
+
+    // Contexto simples (segue conversa anterior)
+    const lastBot = [...messages].reverse().find(m => m.type === 'bot');
+    if (lower.includes('exemplo') && lastBot && lastBot.text.toLowerCase().includes('firewall')) {
+        return { text: '🔐 Exemplo prático de firewall:<br><br>Imagine um prédio com segurança. O firewall é o porteiro que verifica cada pessoa antes de deixar entrar. Só entra quem está na lista permitida.' };
+    }
+
+    if (lower.includes('quem é você') || lower.includes('o que você faz')) {
+        return { text: '🤖 Sou a <b>MATRIX AI</b>, sua assistente dentro do app. Posso fazer cálculos, explicar código, falar sobre segurança digital, converter unidades e resumir textos. Escolha um modo acima ou pergunte à vontade!' };
+    }
+
+    return { text: '🤖 Interessante! Posso ajudar com:<br>• Cálculos matemáticos<br>• Exemplos de código<br>• Segurança digital<br>• Conversão de unidades<br>• Resumos de texto<br><br>Escolha um modo acima ou me pergunte algo específico.' };
+}
+
+function buildCodeExample(lower) {
+    if (lower.includes('python')) {
+        return '💻 Exemplo em Python:<code>def calcular(a, b):\n    return a * b\n\nresultado = calcular(125, 48)\nprint(resultado)  # 6000</code>';
+    }
+    if (lower.includes('loop') || lower.includes('lista') || lower.includes('ordenar')) {
+        return '💻 Exemplo em JavaScript:<code>const numeros = [5, 2, 9, 1];\nnumeros.sort((a, b) => a - b);\nconsole.log(numeros); // [1,2,5,9]</code>';
+    }
+    return '💻 Exemplo de código:<code>function calcular(a, b) {\n  return a * b;\n}\n\nconst resultado = calcular(125, 48);\nconsole.log(resultado); // 6000</code>';
+}
+
+function buildSecurityAnswer(lower) {
+    if (lower.includes('vpn')) {
+        return '🔐 <b>VPN</b> (Rede Privada Virtual) cria um túnel criptografado entre seu dispositivo e a internet, escondendo seu IP real e protegendo seus dados em redes públicas.';
+    }
+    if (lower.includes('senha')) {
+        return '🔐 Uma <b>senha forte</b> deve ter pelo menos 12 caracteres, misturar letras maiúsculas, minúsculas, números e símbolos, e ser única para cada serviço. Use um gerenciador de senhas.';
+    }
+    return '🔐 <b>Firewall</b> é uma barreira de segurança que monitora e controla o tráfego de rede. Ele permite ou bloqueia conexões com base em regras definidas.<br><br>Exemplo: um firewall pode bloquear todas as conexões de entrada exceto as da porta 443 (HTTPS).';
+}
+
+function summarizeText(text) {
+    const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+    if (sentences.length <= 2) return escapeHtml(text);
+    const keep = Math.max(2, Math.ceil(sentences.length * 0.3));
+    return escapeHtml(sentences.slice(0, keep).join(' '));
+}
+
+function calculate(text) {
+    try {
+        let expr = text
+            .replace(/×/g, '*').replace(/x/gi, '*').replace(/÷/g, '/')
+            .replace(/(\d+(\.\d+)?)\s*%\s*de\s*(\d+(\.\d+)?)/gi, '($3*$1/100)')
+            .replace(/(\d+(\.\d+)?)\s*%/g, '($1/100)');
+        const match = expr.match(/[\d.\s+\-*/()]+/);
+        if (match && /\d/.test(match[0])) {
+            const result = Function('"use strict";return (' + match[0] + ')')();
+            if (!isNaN(result) && isFinite(result)) return Number(result.toFixed(4)).toString();
+        }
+    } catch (e) {}
+    return null;
+}
+
+function convertUnits(text) {
+    const lower = text.toLowerCase();
+    const m = lower.match(/(-?\d+(?:[.,]\d+)?)\s*(km|m|kg|g|lb|libras?|milhas?|mi|c|f|celsius|fahrenheit)\s*(?:em|para|to)\s*(km|m|kg|g|lb|libras?|milhas?|mi|c|f|celsius|fahrenheit)/i);
+    if (!m) return null;
+    const value = parseFloat(m[1].replace(',', '.'));
+    let from = m[2], to = m[3];
+    const norm = u => {
+        if (['libras', 'libra'].includes(u)) return 'lb';
+        if (['milhas', 'milha'].includes(u)) return 'mi';
+        if (u === 'celsius') return 'c';
+        if (u === 'fahrenheit') return 'f';
+        return u;
+    };
+    from = norm(from); to = norm(to);
+
+    if (from === 'c' && to === 'f') return value + ' °C = ' + (value * 9 / 5 + 32).toFixed(1) + ' °F';
+    if (from === 'f' && to === 'c') return value + ' °F = ' + ((value - 32) * 5 / 9).toFixed(1) + ' °C';
+    if (from === 'km' && to === 'mi') return value + ' km = ' + (value * 0.621371).toFixed(2) + ' milhas';
+    if (from === 'mi' && to === 'km') return value + ' mi = ' + (value / 0.621371).toFixed(2) + ' km';
+    if (from === 'kg' && to === 'lb') return value + ' kg = ' + (value * 2.20462).toFixed(2) + ' lb';
+    if (from === 'lb' && to === 'kg') return value + ' lb = ' + (value / 2.20462).toFixed(2) + ' kg';
+    if (from === 'km' && to === 'm') return value + ' km = ' + (value * 1000).toFixed(0) + ' m';
+    if (from === 'm' && to === 'km') return value + ' m = ' + (value / 1000).toFixed(3) + ' km';
+    if (from === 'kg' && to === 'g') return value + ' kg = ' + (value * 1000).toFixed(0) + ' g';
+    if (from === 'g' && to === 'kg') return value + ' g = ' + (value / 1000).toFixed(3) + ' g';
+    return null;
+}
+
+function copyResult(text) {
+    navigator.clipboard.writeText(text);
+    toast('📋 Copiado!');
+}
+
+function copyCode(btn) {
+    const codeEl = btn.closest('.ai-msg').querySelector('code');
+    if (codeEl) {
+        navigator.clipboard.writeText(codeEl.textContent);
+        toast('📋 Código copiado!');
+    }
+}
+
+function toast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,255,65,0.9);color:#000;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:bold;z-index:100;';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1500);
+}
+
+document.getElementById('aiInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') sendAI();
+});
+
+renderChips();
+</script>
+</body>
+</html>

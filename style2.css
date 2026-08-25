@@ -1,0 +1,144 @@
+/* ============================================
+   STYLE2.CSS — CAMADA PREMIUM / NEXT-GEN
+   Mesh gradient animado + grão + glows
+============================================ */
+
+/* ---------- Mesh gradient de fundo, animado ---------- */
+body{
+  background:
+    radial-gradient(38% 32% at 12% 8%, rgba(0,230,154,.16), transparent 70%),
+    radial-gradient(42% 36% at 88% 18%, rgba(62,166,255,.14), transparent 70%),
+    radial-gradient(46% 40% at 30% 92%, rgba(167,139,250,.12), transparent 70%),
+    radial-gradient(40% 34% at 90% 88%, rgba(255,176,32,.08), transparent 70%),
+    #06070a;
+  background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%, auto;
+  animation: meshShift 24s ease-in-out infinite alternate;
+}
+@keyframes meshShift{
+  0%{ background-position: 0% 0%, 100% 0%, 0% 100%, 100% 100%, 0 0; }
+  100%{ background-position: 20% 15%, 80% 20%, 15% 85%, 85% 80%, 0 0; }
+}
+
+/* ---------- Grid técnico sutil, fade nas bordas ---------- */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 40%, transparent 90%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 40%, transparent 90%);
+}
+
+/* ---------- Grão de textura (glass premium) ---------- */
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  opacity:.035;
+  mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+}
+
+/* ---------- Glow accents atrás dos cards principais ---------- */
+.price-card{ isolation:isolate; }
+.price-card::before{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  z-index:-1;
+  background: radial-gradient(closest-side, rgba(0,230,154,.16), transparent 75%);
+  filter: blur(10px);
+  opacity:.8;
+  pointer-events:none;
+}
+
+/* ---------- Borda em gradiente animado no card de preço ---------- */
+.price-card{ position:relative; }
+.price-card > *{ position:relative; z-index:1; }
+.price-card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  padding:1px;
+  background:linear-gradient(120deg, rgba(0,230,154,.6), rgba(62,166,255,.4), rgba(167,139,250,.5), rgba(0,230,154,.6));
+  background-size:280% 280%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  animation:borderFlow 7s linear infinite;
+  pointer-events:none;
+}
+@keyframes borderFlow{ to{ background-position:280% 0; } }
+
+/* ---------- Botão CTA: brilho percorrendo + glow pulsante ---------- */
+.cta{ isolation:isolate; }
+.cta::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(105deg, transparent 20%, rgba(255,255,255,.35) 45%, transparent 70%);
+  transform:translateX(-120%);
+  animation:sheen 3.4s ease-in-out infinite;
+}
+@keyframes sheen{
+  0%,60%{ transform:translateX(-120%); }
+  100%{ transform:translateX(120%); }
+}
+.cta::after{
+  content:"";
+  position:absolute;
+  inset:-8px;
+  z-index:-1;
+  border-radius:inherit;
+  background:inherit;
+  filter:blur(16px);
+  opacity:.55;
+  animation:ctaGlow 2.4s ease-in-out infinite;
+}
+@keyframes ctaGlow{ 0%,100%{ opacity:.4; } 50%{ opacity:.7; } }
+
+/* ---------- Brand mark: leve respiração ---------- */
+.brand-mark{
+  animation: markPulse 3.2s ease-in-out infinite;
+}
+@keyframes markPulse{
+  0%,100%{ box-shadow:0 6px 18px rgba(0,230,154,.28); }
+  50%{ box-shadow:0 6px 26px rgba(0,230,154,.5); }
+}
+
+/* ---------- Chips e bento: profundidade extra no toque ---------- */
+.chip, .bento-item, .t-card{
+  transition: transform .25s cubic-bezier(.2,.8,.2,1), border-color .25s ease, box-shadow .25s ease;
+}
+.chip:active, .bento-item:active, .t-card:active{
+  transform: translateY(-3px);
+  border-color: rgba(0,230,154,.35);
+  box-shadow: 0 10px 26px rgba(0,0,0,.35);
+}
+
+/* ---------- FAQ: destaque no item aberto ---------- */
+.faq details[open]{
+  background: linear-gradient(180deg, rgba(0,230,154,.05), transparent);
+  border-radius: 12px;
+}
+.faq details[open] summary{ color: var(--g1); }
+.faq details[open] summary:after{ color:#fff; }
+
+/* ---------- Scroll reveal: leve blur-in para sensação premium ---------- */
+.reveal{ filter: blur(6px); }
+.reveal.in{ filter: blur(0); transition: opacity .6s ease, transform .6s ease, filter .6s ease; }
+
+@media (prefers-reduced-motion: reduce){
+  body, body::before, .price-card::after, .cta::before, .cta::after, .brand-mark{
+    animation: none !important;
+  }
+}

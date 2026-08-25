@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX OS - Game Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+    <link rel="apple-touch-icon" href="/icons/icon-512x512.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-bright: #4dff88;
+            --neon-dim: #00b32d;
+            --neon-cyan: #00f0ff;
+            --neon-gold: #ffb000;
+            --glass-bg: rgba(10, 20, 15, 0.55);
+            --glass-border: rgba(0, 255, 65, 0.25);
+            --glass-blur: blur(18px);
+            --card-padding: 18px 12px;
+            --card-radius: 26px;
+            --card-min-height: 150px;
+            --card-gap-col: 20px;
+            --card-gap-row: 18px;
+            --container-pad: 14px;
+            --text-primary: #e8f5e9;
+            --text-secondary: rgba(200, 230, 200, 0.7);
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: #000; color: var(--text-primary);
+            font-family: 'Inter', -apple-system, sans-serif;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: manipulation;
+        }
+
+        #matrix-rain, #cube-3d {
+            position: fixed; inset: 0;
+            width: 100dvw; height: 100dvh;
+            z-index: 0; pointer-events: none;
+        }
+        #matrix-rain { opacity: 0.15; }
+        #cube-3d { opacity: 0.25; }
+        .crt-scanlines {
+            position: fixed; inset: 0; z-index: 5;
+            pointer-events: none; opacity: 0.03;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.5) 3px);
+        }
+
+
+        .hub-container {
+            padding-top: env(safe-area-inset-top, 0);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100dvw;
+            max-width: 500px; margin: 0 auto;
+            padding-left: var(--container-pad); padding-right: var(--container-pad);
+        }
+
+        .hub-header {
+            border-bottom: 1px solid rgba(0,255,65,0.15);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0 10px; flex-shrink: 0; gap: 8px;
+            z-index: 20;
+        }
+        .home-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(10, 20, 15, 0.5);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .home-btn:active {
+            transform: scale(0.88);
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 20px rgba(0,255,65,0.4);
+        }
+        .home-btn svg { width: 18px; height: 18px; stroke: var(--neon); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+        .hub-title {
+            position: relative;
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(14px, 4.5vw, 22px); font-weight: 900; letter-spacing: 2.5px; white-space: nowrap;
+            color: var(--neon-bright);
+            text-shadow: 0 0 25px rgba(0,255,65,0.5), 0 0 50px rgba(0,255,65,0.25);
+            animation: titleGlitch 6s infinite;
+        }
+        @keyframes titleGlitch {
+            0%, 90%, 100% { text-shadow: 0 0 25px rgba(0,255,65,0.5), 0 0 50px rgba(0,255,65,0.25); transform: translateX(0); }
+            91% { text-shadow: 3px 0 #ff00ff, -3px 0 #00ffff; transform: translateX(2px); }
+            92% { text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff; transform: translateX(-2px); }
+            93% { text-shadow: 0 0 35px rgba(0,255,65,0.7); transform: translateX(0); }
+            94% { text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff; transform: translateX(1px); }
+            95% { text-shadow: 0 0 40px rgba(0,255,65,0.8); transform: translateX(0); }
+        }
+        .version-badge {
+            display: block;
+            font-size: 10px; font-weight: 400; letter-spacing: 1.2px;
+            color: rgba(0,255,65,0.5);
+            text-align: right; margin-top: 1px;
+        }
+        .header-spacer { width: 40px; flex-shrink: 0; }
+
+        .search-bar {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(0,10,0,0.5);
+            border: 1px solid rgba(0,255,65,0.2);
+            border-radius: 20px;
+            padding: 10px 16px; margin: 8px 0 5px;
+            flex-shrink: 0;
+        }
+        .search-bar svg { width: 14px; height: 14px; stroke: rgba(0,255,65,0.6); flex-shrink: 0; }
+        .search-bar input {
+            flex: 1; background: none; border: none; outline: none;
+            color: var(--neon-bright); font-family: 'Inter', sans-serif;
+            font-size: 13px; letter-spacing: 0.5px;
+        }
+        .search-bar input::placeholder { color: rgba(0,255,65,0.35); }
+        .search-clear {
+            background: none; border: none; color: rgba(0,255,65,0.5);
+            font-size: 14px; cursor: pointer; padding: 0 2px; display: none;
+        }
+        .search-bar.has-value .search-clear { display: block; }
+
+        .corridor-viewport {
+            margin-top: 2px;
+            flex: 1;
+            perspective: 1000px;
+            perspective-origin: 50% 45%;
+            position: relative;
+            overflow: hidden;
+        }
+        .corridor-track { position: absolute; inset: 0; transform-style: preserve-3d;
+            transform: translate3d(0, 0, 0); will-change: transform; }
+        .corridor-panel {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 88%; max-width: 420px;
+            max-height: 92%;
+            overflow-y: auto;
+            transform-style: preserve-3d;
+            transform: translate3d(0, 0, 0);
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            backface-visibility: hidden;
+            border-radius: 22px;
+            scrollbar-width: none;
+        }
+        .corridor-panel::-webkit-scrollbar { display: none; }
+        .corridor-panel.active { z-index: 10; opacity: 1; transform: translate(-50%, -50%) rotateY(0deg) translateZ(0); }
+        .corridor-panel.prev {
+            z-index: 5; opacity: 0.75;
+            transform: translate(-50%, -50%) rotateY(52deg) translateZ(-200px) translateX(-42%) scale(0.8);
+            filter: brightness(0.5);
+        }
+        .corridor-panel.next {
+            z-index: 5; opacity: 0.75;
+            transform: translate(-50%, -50%) rotateY(-52deg) translateZ(-200px) translateX(42%) scale(0.8);
+            filter: brightness(0.5);
+        }
+        .corridor-panel.far {
+            z-index: 1; opacity: 0.25;
+            transform: translate(-50%, -50%) rotateY(65deg) translateZ(-400px) scale(0.55);
+            pointer-events: none;
+        }
+        .corridor-panel.hidden-empty { display: none; }
+
+        .corridor-reflection {
+            position: absolute; top: 100%; left: 0;
+            width: 100%; height: 55%;
+            transform: scaleY(-1);
+            opacity: 0.2; pointer-events: none;
+            filter: blur(4px) brightness(0.6);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+        }
+
+        .corridor-pill {
+            position: fixed; top: calc(env(safe-area-inset-top) + 80px); left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+            background: rgba(10, 20, 15, 0.75);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 20px;
+            padding: 6px 16px; white-space: nowrap; width: fit-content; max-width: 90%;
+            overflow: hidden; text-overflow: ellipsis;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+            color: var(--neon);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 0 15px rgba(0,255,65,0.2);
+            transition: all 0.3s;
+        }
+
+        .terminal-toast {
+            position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+            z-index: 40; background: rgba(0,0,0,0.9);
+            border: 1px solid var(--neon); border-radius: 8px;
+            padding: 8px 14px; font-family: "Courier New", monospace;
+            font-size: 10px; color: var(--neon);
+            opacity: 0; transition: opacity 0.3s;
+            max-width: 90%; text-align: center;
+        }
+        .terminal-toast.visible { opacity: 1; }
+
+        .system-footer {
+            position: fixed; bottom: 38px; left: 50%; transform: translateX(-50%);
+            z-index: 25; font-size: 8px; font-family: "Courier New", monospace;
+            color: rgba(0,255,65,0.25); letter-spacing: 1px;
+            text-align: center; white-space: nowrap;
+        }
+
+        .corridor-dots {
+            position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+            z-index: 15; display: flex; gap: 16px;
+        }
+        .corridor-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(0,255,65,0.2);
+            border: 1px solid rgba(0,255,65,0.3);
+            cursor: pointer; transition: all 0.3s;
+        }
+        .corridor-dot.active {
+            background: var(--neon);
+            box-shadow: 0 0 10px var(--neon);
+            transform: scale(1.3);
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px; font-weight: 700; letter-spacing: 2px;
+            color: var(--neon-gold);
+            text-shadow: 0 0 15px rgba(255,176,0,0.4);
+            margin: 4px 4px 2px;
+        }
+        .section-tagline {
+            font-size: 10px; color: rgba(0,255,65,0.4);
+            font-family: "Courier New", monospace;
+            margin: 0 4px 8px; letter-spacing: 0.5px;
+        }
+        .cards-grid {
+            position: relative;
+            background: rgba(0,20,5,0.3);
+            border: 1px solid rgba(0,255,65,0.15);
+            border-radius: 16px;
+            padding: 14px;
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--card-gap-row) var(--card-gap-col);
+        }
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center; padding: 30px 10px;
+            color: rgba(0,255,65,0.4);
+            font-family: "Courier New", monospace;
+            font-size: 12px; letter-spacing: 1px;
+        }
+        .app-tile {
+            padding: var(--card-padding);
+            min-height: var(--card-min-height);
+            border-radius: var(--card-radius);
+            position: relative;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            display: flex; flex-direction: column;
+            align-items: center; gap: 8px;
+            cursor: pointer;
+            backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            transition: all 0.2s;
+            overflow: hidden;
+            clip-path: inset(0 round var(--card-radius));
+        }
+        .app-tile::after {
+            content: "";
+            position: absolute; bottom: 0; left: 20%; right: 20%;
+            height: 2px; border-radius: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon), transparent);
+            opacity: 0.3; animation: energyPulse 3s ease-in-out infinite;
+        }
+        @keyframes energyPulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.6; } }
+        .app-tile:active {
+            transform: scale(0.94);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3), 0 0 25px rgba(0,255,65,0.3);
+            background: rgba(0, 255, 65, 0.1);
+        }
+        .app-tile:focus-visible {
+            outline: 2px solid var(--neon-cyan);
+            outline-offset: 2px;
+        }
+        .app-tile .badge {
+            position: absolute; top: 6px; right: 8px;
+            font-size: 8px; font-family: "Courier New", monospace;
+            color: var(--neon); opacity: 0.7; letter-spacing: 0.5px;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 6px; border-radius: 8px;
+            border: 1px solid rgba(0,255,65,0.2);
+        }
+        .app-tile .fav-star {
+            position: absolute; top: 6px; left: 8px;
+            font-size: 11px; color: var(--neon-gold);
+            text-shadow: 0 0 8px rgba(255,176,0,0.8);
+            display: none;
+        }
+        .app-tile.is-fav .fav-star { display: block; }
+        .icon-wrap {
+            margin-top: 8px;
+            width: clamp(40px, 10vw, 58px); height: clamp(40px, 10vw, 58px); border-radius: 14px;
+            background: radial-gradient(circle, rgba(0,255,65,0.12), rgba(0,255,65,0.03));
+            display: flex; align-items: center; justify-content: center;
+        }
+        .icon-wrap svg {
+            width: clamp(24px, 6vw, 34px); height: clamp(24px, 6vw, 34px);
+            stroke: var(--neon); stroke-width: 1.7;
+            fill: none; stroke-linecap: round; stroke-linejoin: round;
+            filter: drop-shadow(0 0 5px rgba(0,255,65,0.4));
+        }
+        .tile-name {
+            font-weight: 500; font-size: 13px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+            color: var(--text-primary); text-align: center;
+            text-shadow: 0 0 8px rgba(0,255,65,0.4);
+        }
+
+        .corridor-panel.active .app-tile {
+            animation: iconPopIn 0.35s ease-out backwards;
+        }
+        .corridor-panel.active .app-tile:nth-child(1) { animation-delay: 0ms; }
+        .corridor-panel.active .app-tile:nth-child(2) { animation-delay: 50ms; }
+        .corridor-panel.active .app-tile:nth-child(3) { animation-delay: 100ms; }
+        .corridor-panel.active .app-tile:nth-child(4) { animation-delay: 150ms; }
+        .corridor-panel.active .app-tile:nth-child(5) { animation-delay: 200ms; }
+        .corridor-panel.active .app-tile:nth-child(6) { animation-delay: 250ms; }
+        @keyframes iconPopIn {
+            from { opacity: 0.25; transform: scale(0.6) translateZ(-40px); }
+            to { opacity: 1; transform: scale(1) translateZ(0); }
+        }
+
+        @media (hover: hover) {
+            .app-tile:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,255,65,0.2);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .corridor-panel, .app-tile, .icon-wrap, .tile-name, .hub-title { animation: none !important; transition: none !important; }
+        }
+        @media (min-width: 768px) {
+            .hub-container { max-width: 600px; }
+            .cards-grid { grid-template-columns: repeat(3, 1fr); }
+            .corridor-panel { max-width: 500px; }
+        }
+        /* ---------- Contador de usuários online ---------- */
+    .online-counter {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 8px;
+        font-size: 10px;
+        font-family: 'Share Tech Mono', 'Courier New', monospace;
+        color: var(--neon-cyan);
+        background: rgba(0, 240, 255, 0.08);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        border-radius: 10px;
+        padding: 4px 10px;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        animation: fadeIn 0.5s ease;
+    }
+    .online-counter .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--neon);
+        box-shadow: 0 0 8px var(--neon);
+        animation: pulse 2s infinite;
+        flex-shrink: 0;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.8); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+        50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(0,255,65,0.8); }
+    }
+        /* ---------- Overlay Premium de Entrada ---------- */
+    #fsOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: radial-gradient(ellipse at 50% 40%, #001a00 0%, #000 70%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    #fsOverlay .fs-content {
+        text-align: center;
+        padding: 40px 30px;
+        position: relative;
+        z-index: 2;
+    }
+    #fsOverlay .fs-logo {
+        font-family: 'Orbitron', sans-serif;
+        font-size: clamp(30px, 8vw, 44px);
+        font-weight: 900;
+        letter-spacing: 4px;
+        background: linear-gradient(90deg, #00ff41, #00f0ff, #ffb000);
+        background-size: 200%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: fsGradient 3s linear infinite;
+        filter: drop-shadow(0 0 30px rgba(0,255,65,0.5));
+    }
+    @keyframes fsGradient {
+        0% { background-position: 0% center; }
+        100% { background-position: 200% center; }
+    }
+    #fsOverlay .fs-sub {
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 13px;
+        color: rgba(0,240,255,0.8);
+        letter-spacing: 3px;
+        margin-top: 14px;
+        animation: fsBlink 2s ease-in-out infinite;
+    }
+    @keyframes fsBlink {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+    }
+    #fsOverlay .fs-btn {
+        display: inline-block;
+        margin-top: 34px;
+        padding: 18px 48px;
+        background: linear-gradient(90deg, #00ff41, #00f0ff);
+        border: none;
+        border-radius: 18px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 3px;
+        color: #000;
+        cursor: pointer;
+        box-shadow: 0 0 40px rgba(0,255,65,0.5);
+        transition: transform 0.25s;
+    }
+    #fsOverlay .fs-btn:hover {
+        transform: scale(1.08);
+        box-shadow: 0 0 60px rgba(0,255,65,0.8);
+    }
+    #fsOverlay .fs-btn:active {
+        transform: scale(0.92);
+    }
+    #fsOverlay .fs-ring {
+        position: absolute;
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,255,65,0.2);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        animation: fsRingPulse 2.5s ease-in-out infinite;
+    }
+    #fsOverlay .fs-ring.r2 {
+        width: 350px;
+        height: 350px;
+        border-color: rgba(0,240,255,0.1);
+        animation-duration: 3.5s;
+    }
+    #fsOverlay .fs-ring.r3 {
+        width: 450px;
+        height: 450px;
+        border-color: rgba(255,176,0,0.08);
+        animation-duration: 4.5s;
+    }
+    @keyframes fsRingPulse {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+        50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+    }
+    #fsOverlay .fs-particles {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+    .fs-particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: #00ff41;
+        border-radius: 50%;
+        box-shadow: 0 0 12px #00ff41;
+        animation: fsFloat 4s linear infinite;
+    }
+    @keyframes fsFloat {
+        0% { transform: translateY(100vh) scale(0); opacity: 0; }
+        20% { opacity: 1; }
+        100% { transform: translateY(-20px) scale(1); opacity: 0; }
+    }
+    .bg-particles {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .bg-particle {
+        position: absolute;
+        bottom: -20px;
+        border-radius: 50%;
+        background: #00ff41;
+        box-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+        animation: floatUp linear infinite;
+        opacity: 0;
+    }
+    @keyframes floatUp {
+        0% { transform: translateY(0) scale(1); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(-100vh) scale(0.2); opacity: 0; }
+    }
+    </style>
+</head>
+<body>
+    <div class="bg-particles" id="bgParticles"></div>
+    <div id="fsOverlay">
+        <div class="fs-particles" id="fsParticles"></div>
+        <div class="fs-ring"></div>
+        <div class="fs-ring r2"></div>
+        <div class="fs-ring r3"></div>
+        <div class="fs-content">
+            <div class="fs-logo">MATRIX OS</div>
+            <div class="fs-sub">EXPERIÊNCIA IMERSIVA</div>
+            <button class="fs-btn" onclick="ativarFullscreenEfechar(event)">⬡ ENTRAR</button>
+        </div>
+    </div>
+
+<script>
+    // ================= FULLSCREEN AUTOMÁTICO =================
+    function ativarFullscreen() {
+        const el = document.documentElement;
+        if (!document.fullscreenElement && el.requestFullscreen) {
+            el.requestFullscreen().catch(function() {});
+        }
+    }
+
+    // Tenta ativar em intervalos após o carregamento
+    window.addEventListener('load', function() {
+        ativarFullscreen();
+        setTimeout(ativarFullscreen, 300);
+        setTimeout(ativarFullscreen, 1000);
+        setTimeout(ativarFullscreen, 2000);
+    });
+
+    // Ativa no primeiro toque/clique (navegadores mobile exigem interação)
+    document.addEventListener('touchstart', ativarFullscreen, { once: true, passive: true });
+    document.addEventListener('click', ativarFullscreen, { once: true });
+
+    // Garante que o app esteja sempre em fullscreen ao voltar do background
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && !document.fullscreenElement) {
+            setTimeout(ativarFullscreen, 300);
+        }
+    });
+    </script>
+    <button class="fullscreen-btn" id="fullscreenBtn" title="Tela Cheia">⛶</button>
+    <canvas id="matrix-rain"></canvas>
+    <canvas id="cube-3d"></canvas>
+    <div class="crt-scanlines"></div>
+
+    <div class="hub-container">
+        <div class="hub-header">
+            <button class="home-btn" onclick="window.location.href='/index.html'" aria-label="Início">
+                <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+            </button>
+            <span class="hub-title">
+                <span style="font-size:1.5em;text-shadow:0 0 30px rgba(0,255,65,0.8);">M</span>ATRIX
+                <span style="font-size:1.5em;text-shadow:0 0 30px rgba(0,255,65,0.8);">OS</span>
+                <span class="version-badge">v3.1.1 PRO</span>
+            <span class="online-counter" id="onlineCounter">
+        <span class="dot"></span><span id="onlineCount">1</span> ONLINE
+    </span>
+            </span>
+            <span class="header-spacer"></span>
+        </div>
+
+
+        <div class="search-bar" id="searchBar">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="appSearchInput" placeholder="Buscar módulo..." autocomplete="off" aria-label="Buscar aplicativo">
+            <button class="search-clear" id="searchClearBtn" aria-label="Limpar busca">✕</button>
+        </div>
+
+        <div class="corridor-viewport" id="corridorViewport"></div>
+    </div>
+
+<script>
+function showToast(msg) {
+    let toast = document.querySelector(".terminal-toast");
+    if(!toast) {
+        toast = document.createElement("div");
+        toast.className = "terminal-toast";
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add("visible");
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => toast.classList.remove("visible"), 1500);
+}
+
+function vibrate(ms) {
+    if(navigator.vibrate) { try { navigator.vibrate(ms); } catch(e) {} }
+}
+
+
+function initMatrixRain() {
+    const canvas = document.getElementById('matrix-rain');
+    const ctx = canvas.getContext('2d');
+    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789{}<>/\\=λΣ';
+    let drops = [], fontSize = 10, lastFrame = 0;
+    const fps = 12, interval = 1000 / fps;
+    let isVisible = true;
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        fontSize = canvas.width < 500 ? 9 : 11;
+        const cols = Math.floor(canvas.width / fontSize);
+        drops = Array(cols).fill(0).map(() => Math.random() * canvas.height / fontSize);
+    }
+    resize(); window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', () => { isVisible = !document.hidden; if(isVisible) lastFrame = 0; });
+
+    function draw(now) {
+        requestAnimationFrame(draw);
+        if(!isVisible) return;
+        if(now - lastFrame < interval) return;
+        lastFrame = now;
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        for(let i = 0; i < drops.length; i++) {
+            const ch = chars[Math.floor(Math.random()*chars.length)];
+            const x = i * fontSize, y = drops[i] * fontSize;
+            const bright = Math.random();
+            ctx.fillStyle = bright > 0.95 ? 'rgba(255,255,255,0.5)' : bright > 0.7 ? 'rgba(0,255,65,0.45)' : 'rgba(0,179,45,0.25)';
+            ctx.font = fontSize + 'px monospace';
+            ctx.fillText(ch, x, y);
+            if(y > canvas.height && Math.random() > 0.98) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    requestAnimationFrame(draw);
+}
+initMatrixRain();
+
+function initCube3D() {
+    const canvas = document.getElementById('cube-3d');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let angleX = 0, angleY = 0, lastFrame = 0;
+    const fps = 30, interval = 1000 / fps;
+    let isVisible = true;
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize(); window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', () => { isVisible = !document.hidden; if(isVisible) lastFrame = 0; });
+
+    const vertices = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+    const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+
+    function rotatePoint(x, y, z, ax, ay) {
+        let cosY = Math.cos(ay), sinY = Math.sin(ay);
+        let x1 = x * cosY - z * sinY, z1 = x * sinY + z * cosY;
+        let cosX = Math.cos(ax), sinX = Math.sin(ax);
+        let y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
+        return [x1, y1, z2];
+    }
+
+    function draw(now) {
+        requestAnimationFrame(draw);
+        if(!isVisible) return;
+        if(now - lastFrame < interval) return;
+        lastFrame = now;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = canvas.width / 2, cy = canvas.height / 2;
+        const scale = Math.min(canvas.width, canvas.height) * 0.22;
+        angleX += 0.008; angleY += 0.012;
+        const projected = vertices.map(v => {
+            const [x, y, z] = rotatePoint(v[0], v[1], v[2], angleX, angleY);
+            const persp = 3 / (3 + z);
+            return [cx + x * scale * persp, cy + y * scale * persp];
+        });
+        ctx.strokeStyle = 'rgba(0, 255, 65, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = 'rgba(0, 255, 65, 0.4)';
+        ctx.shadowBlur = 5;
+        edges.forEach(edge => {
+            ctx.beginPath();
+            ctx.moveTo(projected[edge[0]][0], projected[edge[0]][1]);
+            ctx.lineTo(projected[edge[1]][0], projected[edge[1]][1]);
+            ctx.stroke();
+        });
+        projected.forEach(p => {
+            ctx.fillStyle = 'rgba(0, 255, 65, 0.8)';
+            ctx.beginPath(); ctx.arc(p[0], p[1], 2.5, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.shadowBlur = 0;
+    }
+    requestAnimationFrame(draw);
+}
+initCube3D();
+
+const ICONS = {
+    chess: '<path d="M12 3l1.8 2.6L17 4l-1 3.6L19 9l-3 2 1 4H7l1-4-3-2 3-1.4L7 4l3.2 1.6L12 3z"/><path d="M8 21h8"/><path d="M9 17h6l1 4H8l1-4z"/>',
+    rocket: '<path d="M12 2c2.8 2.6 4 6.2 4 10.5 0 2-.4 3.7-1 5.2l-3-1.7-3 1.7c-.6-1.5-1-3.2-1-5.2C8 8.2 9.2 4.6 12 2z"/><circle cx="12" cy="10" r="1.6"/><path d="M9 15l-3 2 1 4 2.5-2.5"/><path d="M15 15l3 2-1 4-2.5-2.5"/>',
+    camera: '<path d="M4 8h3l2-3h6l2 3h3v12H4V8z"/><circle cx="12" cy="13" r="4"/><circle cx="17.5" cy="10.5" r="0.6" fill="var(--neon)"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 5-5 2 2-5 5-2z"/><circle cx="12" cy="12" r="1" fill="var(--neon)"/>',
+    swords: '<path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M9.5 6.5L21 18v3h-3L6.5 9.5"/>',
+    trophy: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a3 3 0 0 0 3 5"/><path d="M17 6h3a3 3 0 0 1-3 5"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+    play: '<circle cx="12" cy="12" r="10"/><path d="M9.5 8l7 4-7 4V8z"/>',
+    pin: '<circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 1 8 8c0 5-8 12-8 12S4 15 4 10a8 8 0 0 1 8-8z"/>',
+    ai: '<circle cx="12" cy="7" r="3"/><path d="M12 10v2"/><rect x="4" y="12" width="16" height="9" rx="2"/><path d="M8 16.5h.01M12 16.5h.01M16 16.5h.01"/>',
+    chat: '<path d="M4 4h16v12H8l-4 4V4z"/><path d="M8 8h8M8 11h5"/>',
+    tools: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>',
+    cloud: '<path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 0 0 5 13.5 3.5 3.5 0 0 0 6.5 20h11z"/><path d="M8 22l1.5-2M12 22l1.5-2M16 22l1.5-2"/>',
+    radar: '<circle cx="12" cy="12" r="9"/><path d="M12 12L12 4"/><path d="M12 12l6 3"/><circle cx="12" cy="12" r="1.4" fill="var(--neon)"/>',
+    satellite: '<rect x="14" y="3" width="7" height="7" rx="1" transform="rotate(45 17.5 6.5)"/><path d="M13 11l3-3"/><path d="M3 21l4-4"/><path d="M5 15l4 4"/><rect x="2" y="15" width="6" height="6" rx="1" transform="rotate(-45 5 18)"/>',
+    puzzle: '<path d="M9 4h4v2.2a2 2 0 1 0 0 3.6V12h4v4.2a2 2 0 1 1-3.6 0H12v-4H8v3.8a2 2 0 1 1-3.6 0H4V12h4V8.2A2 2 0 1 1 8 4.4V4h1z"/>'
+};
+
+const gameApps = [
+    { id: 'chess',   name: 'Xadrez 3D',       url: '/chess-3d.html', icon: 'chess',  badge: 'NEW' },
+    { id: 'ship',    name: 'Nave Espacial',   url: '/nave.html',     icon: 'rocket' },
+    { id: 'camera',  name: 'Pro Camera 360',  url: '/camera.html',   icon: 'camera' },
+    { id: 'nautical',name: 'Nautical Ultra',  url: '/nautical.html', icon: 'compass' },
+    { id: 'arena',   name: 'Matrix Arena',    url: '/arena.html',    icon: 'swords' },
+    { id: 'ranking', name: 'Ranking',         url: '/ranking.html',  icon: 'trophy' }
+];
+
+const toolApps = [
+    { id: 'profile',   name: 'Perfil',          url: '/perfil.html',       icon: 'user' },
+    { id: 'player',    name: 'Matrix Player',   url: '/player.html',       icon: 'play' },
+    { id: 'gps',       name: 'Matrix GPS',      url: '/map.html',          icon: 'pin' },
+    { id: 'ai',        name: 'Matrix AI',       url: '/matrix-ai.html',    icon: 'ai' },
+    { id: 'chat',      name: 'Matrix Chat',     url: '/chat.html',         icon: 'chat' },
+    { id: 'tools',     name: 'Super Tools',     url: '/tools.html',        icon: 'tools' },
+    { id: 'weather',   name: 'Radar do Tempo',  url: '/weather.html',      icon: 'cloud' },
+    { id: 'flights',   name: 'Radar de Voos',   url: '/radar.html',        icon: 'radar' },
+    { id: 'satellite', name: 'Satélite AR',     url: '/ar-satellite.html', icon: 'satellite' },
+    { id: 'logic',     name: 'Jogos de Lógica', url: '/brain.html',        icon: 'puzzle' }
+];
+
+const FAV_KEY = 'matrixos_favorites';
+function getFavorites() {
+    try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch(e) { return []; }
+}
+function toggleFavorite(id) {
+    let favs = getFavorites();
+    if(favs.includes(id)) { favs = favs.filter(f => f !== id); showToast('★ REMOVIDO DOS FAVORITOS'); }
+    else { favs.push(id); showToast('★ ADICIONADO AOS FAVORITOS'); }
+    localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+    vibrate(20);
+    renderSections();
+}
+
+function tileHTML(app) {
+    const favs = getFavorites();
+    const isFav = favs.includes(app.id);
+    return `<div class="app-tile${isFav ? ' is-fav' : ''}" role="button" tabindex="0"
+                data-url="${app.url}" data-id="${app.id}" data-name="${app.name.toLowerCase()}"
+                aria-label="Abrir ${app.name}">
+                <span class="fav-star">★</span>
+                ${app.badge ? `<span class="badge">${app.badge}</span>` : ''}
+                <div class="icon-wrap"><svg viewBox="0 0 24 24">${ICONS[app.icon] || ''}</svg></div>
+                <span class="tile-name">${app.name}</span>
+            </div>`;
+}
+
+function createPanel(title, apps, tagline) {
+    const panel = document.createElement('div');
+    panel.className = 'corridor-panel';
+
+    const sectionEl = document.createElement('div');
+    sectionEl.className = 'section-title';
+    sectionEl.textContent = title;
+    panel.appendChild(sectionEl);
+
+    const taglineEl = document.createElement('div');
+    taglineEl.className = 'section-tagline';
+    taglineEl.textContent = tagline;
+    panel.appendChild(taglineEl);
+
+    const grid = document.createElement('div');
+    grid.className = 'cards-grid';
+    grid.innerHTML = apps.length
+        ? apps.map(tileHTML).join('')
+        : '<div class="empty-state">// NENHUM MÓDULO ENCONTRADO</div>';
+    panel.appendChild(grid);
+
+    const reflection = document.createElement('div');
+    reflection.className = 'corridor-reflection';
+    reflection.setAttribute('aria-hidden', 'true');
+    reflection.innerHTML = panel.innerHTML;
+    panel.appendChild(reflection);
+
+    return panel;
+}
+
+let track, panels = [], dotsWrap, pill, currentPanel = 0;
+const LAST_PANEL_KEY = 'matrixos_last_panel';
+
+function filteredApps(list, query) {
+    if(!query) return list;
+    return list.filter(a => a.name.toLowerCase().includes(query));
+}
+
+function buildSections(query) {
+    const favs = getFavorites();
+    const favApps = [...gameApps, ...toolApps].filter(a => favs.includes(a.id));
+    const sections = [];
+    if(favApps.length) sections.push({ title: 'FAVORITOS', items: filteredApps(favApps, query), tag: '> TOQUE LONGO PARA FIXAR/REMOVER' });
+    sections.push({ title: 'MATRIX GAME HUB', items: filteredApps(gameApps, query), tag: `> ${gameApps.length} MÓDULOS ATIVOS // JOGOS` });
+    sections.push({ title: 'FERRAMENTAS', items: filteredApps(toolApps, query), tag: `> ${toolApps.length} MÓDULOS ATIVOS // SISTEMA` });
+    return sections;
+}
+
+function renderSections() {
+    const viewport = document.getElementById('corridorViewport');
+    const query = document.getElementById('appSearchInput').value.trim().toLowerCase();
+    viewport.innerHTML = '';
+    panels = [];
+
+    track = document.createElement('div');
+    track.className = 'corridor-track';
+    viewport.appendChild(track);
+
+    if(!pill) { pill = document.createElement('div'); pill.className = 'corridor-pill'; document.body.appendChild(pill); }
+    if(!dotsWrap) { dotsWrap = document.createElement('div'); dotsWrap.className = 'corridor-dots'; document.body.appendChild(dotsWrap); }
+    dotsWrap.innerHTML = '';
+
+    const sections = buildSections(query);
+    sections.forEach((section, idx) => {
+        const panel = createPanel(section.title, section.items, section.tag);
+        track.appendChild(panel);
+        panels.push(panel);
+
+        const dot = document.createElement('div');
+        dot.className = 'corridor-dot';
+        dot.addEventListener('click', () => goToPanel(idx));
+        dotsWrap.appendChild(dot);
+    });
+
+    currentPanel = Math.min(currentPanel, panels.length - 1);
+    if(currentPanel < 0) currentPanel = 0;
+    updatePanels();
+    bindTileEvents();
+}
+
+function updatePanels() {
+    panels.forEach((panel, idx) => {
+        const diff = idx - currentPanel;
+        panel.classList.remove('active', 'prev', 'next', 'far');
+        if(diff === 0) panel.classList.add('active');
+        else if(diff === -1) panel.classList.add('prev');
+        else if(diff === 1) panel.classList.add('next');
+        else panel.classList.add('far');
+    });
+    const title = panels[currentPanel] ? panels[currentPanel].querySelector('.section-title').textContent : '';
+    if(pill) pill.textContent = title;
+    document.querySelectorAll('.corridor-dot').forEach((dot, idx) => dot.classList.toggle('active', idx === currentPanel));
+    localStorage.setItem(LAST_PANEL_KEY, String(currentPanel));
+}
+
+function goToPanel(idx) {
+    if(idx < 0 || idx >= panels.length || idx === currentPanel) return;
+    currentPanel = idx;
+    vibrate(10);
+    updatePanels();
+}
+
+let longPressTimer = null;
+function bindTileEvents() {
+    document.querySelectorAll('.app-tile').forEach(tile => {
+        const open = () => { vibrate(15); window.location.href = tile.dataset.url; };
+
+        tile.addEventListener('click', open);
+        tile.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+
+        tile.addEventListener('touchstart', () => {
+            longPressTimer = setTimeout(() => toggleFavorite(tile.dataset.id), 550);
+        }, { passive: true });
+        ['touchend', 'touchmove', 'touchcancel'].forEach(evt =>
+            tile.addEventListener(evt, () => clearTimeout(longPressTimer), { passive: true })
+        );
+    });
+}
+
+const searchInput = document.getElementById('appSearchInput');
+const searchBarEl = document.getElementById('searchBar');
+searchInput.addEventListener('input', () => {
+    searchBarEl.classList.toggle('has-value', searchInput.value.length > 0);
+    currentPanel = 0;
+    renderSections();
+});
+document.getElementById('searchClearBtn').addEventListener('click', () => {
+    searchInput.value = '';
+    searchBarEl.classList.remove('has-value');
+    renderSections();
+    searchInput.blur();
+});
+
+function initNavigation() {
+    const viewport = document.getElementById('corridorViewport');
+    let touchStartX = 0, touchStartY = 0;
+    viewport.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    viewport.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+            if(dx < 0) goToPanel(currentPanel + 1);
+            else goToPanel(currentPanel - 1);
+        }
+    }, { passive: true });
+
+    document.addEventListener('keydown', (e) => {
+        if(document.activeElement === searchInput) return;
+        if(e.key === 'ArrowRight') goToPanel(currentPanel + 1);
+        if(e.key === 'ArrowLeft') goToPanel(currentPanel - 1);
+    });
+}
+
+function addSystemFooter() {
+    const footer = document.createElement('div');
+    footer.className = 'system-footer';
+    const now = new Date();
+    const time = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    footer.textContent = 'MATRIX OS v3.1.1 PRO | ÚLTIMA SINCRONIZAÇÃO: ' + time + ' | SECURE & ENCRYPTED';
+    document.body.appendChild(footer);
+}
+
+const saved = parseInt(localStorage.getItem(LAST_PANEL_KEY), 10);
+currentPanel = Number.isFinite(saved) ? saved : 0;
+renderSections();
+initNavigation();
+addSystemFooter();
+</script>
+<script>
+        document.getElementById('fullscreenBtn').addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Erro ao entrar em tela cheia:', err);
+                });
+                this.textContent = '✕';
+            } else {
+                document.exitFullscreen();
+                this.textContent = '⛶';
+            }
+        });
+
+        document.addEventListener('fullscreenchange', function() {
+            var btn = document.getElementById('fullscreenBtn');
+            if (document.fullscreenElement) {
+                btn.textContent = '✕';
+            } else {
+                btn.textContent = '⛶';
+            }
+        });
+    </script>
+<script src="/xp-system.js"></script>
+
+<script>
+    // Contador de usuários online REAL (WebSocket)
+    (function() {
+        const countEl = document.getElementById('onlineCount');
+        const counterEl = document.getElementById('onlineCounter');
+
+        // Tentar WebSocket primeiro
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const ws = new WebSocket(protocol + '//' + window.location.host + '/ws-online');
+
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'online_count' && countEl) {
+                            countEl.textContent = data.count;
+                            flashCounter();
+                        }
+                    } catch(e) {}
+                };
+
+                ws.onclose = function() {
+                    // Fallback para HTTP polling
+                    startHTTPPolling();
+                };
+
+                ws.onerror = function() {
+                    startHTTPPolling();
+                };
+            } catch(e) {
+                startHTTPPolling();
+            }
+        }
+
+        // Fallback: HTTP polling a cada 5 segundos
+        function startHTTPPolling() {
+            setInterval(async () => {
+                try {
+                    const res = await fetch('/api/online');
+                    const data = await res.json();
+                    if (countEl) {
+                        countEl.textContent = data.online || 1;
+                        flashCounter();
+                    }
+                } catch(e) {}
+            }, 5000);
+        }
+
+        // Efeito visual
+        function flashCounter() {
+            if (counterEl) {
+                counterEl.style.boxShadow = '0 0 15px rgba(0, 240, 255, 0.5)';
+                setTimeout(() => {
+                    counterEl.style.boxShadow = 'none';
+                }, 400);
+            }
+        }
+
+        connectWebSocket();
+    })();
+    </script>
+<script>
+    function ativarFullscreenEfechar(event) {
+        if (event) event.stopPropagation();
+        const el = document.documentElement;
+        const overlay = document.getElementById('fsOverlay');
+
+        if (el.requestFullscreen) {
+            el.requestFullscreen().catch(function() {});
+        }
+
+        if (overlay) {
+            overlay.style.transition = 'opacity 0.6s ease';
+            overlay.style.opacity = '0';
+            setTimeout(function() {
+                overlay.remove();
+            }, 600);
+        }
+    }
+
+    // AUTO-ENTRADA: remove overlay e ativa fullscreen automaticamente
+    function autoEnterMatrix() {
+        setTimeout(function() {
+            ativarFullscreenEfechar();
+        }, 800);
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        autoEnterMatrix();
+    } else {
+        window.addEventListener('DOMContentLoaded', autoEnterMatrix);
+    }
+
+    // Fallback: toque/clique no overlay também funciona
+    document.getElementById('fsOverlay').addEventListener('click', ativarFullscreenEfechar);
+    </script>
+<script>
+    // Criar partículas flutuantes
+    (function() {
+        const container = document.getElementById('fsParticles');
+        if (!container) return;
+
+        for (let i = 0; i < 25; i++) {
+            const p = document.createElement('div');
+            p.className = 'fs-particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDelay = Math.random() * 4 + 's';
+            p.style.animationDuration = (3 + Math.random() * 4) + 's';
+            p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
+            container.appendChild(p);
+        }
+    })();
+    </script>
+    <script>
+    (function() {
+        const container = document.getElementById("bgParticles");
+        if (!container) return;
+
+        function createParticle() {
+            const p = document.createElement("div");
+            p.className = "bg-particle";
+            const size = Math.random() * 5 + 2;
+            p.style.width = size + "px";
+            p.style.height = size + "px";
+            p.style.left = Math.random() * 100 + "%";
+            p.style.animationDuration = (Math.random() * 5 + 5) + "s";
+            p.style.animationDelay = Math.random() * 5 + "s";
+            container.appendChild(p);
+            setTimeout(() => p.remove(), 10000);
+        }
+
+        for (let i = 0; i < 30; i++) {
+            setTimeout(createParticle, Math.random() * 5000);
+        }
+
+        setInterval(createParticle, 500);
+    })();
+    </script>
+
+<script>
+    // ================= AUTO SHOW CARDS & AUTO BOOT APP =================
+    function autoShowCards() {
+        const bootScreens = document.querySelectorAll("[id*='boot'], [class*='boot'], [id*='Boot'], [class*='Boot']");
+        bootScreens.forEach(screen => {
+            screen.style.display = "none";
+            screen.style.opacity = "0";
+            screen.style.transition = "opacity 0.3s ease";
+            setTimeout(() => screen.remove(), 300);
+        });
+
+        const hiddenElements = document.querySelectorAll(".hidden");
+        hiddenElements.forEach(element => {
+            element.classList.remove("hidden");
+        });
+
+        const cardContainers = document.querySelectorAll("[id*='card'], [class*='card'], [id*='Card'], [class*='Card'], [id*='hub'], [class*='hub'], [id*='Hub'], [class*='Hub'], [id*='grid'], [class*='grid']");
+        cardContainers.forEach(container => {
+            if (container.style.display === "none") {
+                container.style.display = "grid";
+            } else if (container.style.display === "block") {
+                container.style.display = "block";
+            } else if (container.style.display === "flex") {
+                container.style.display = "flex";
+            }
+        });
+
+        document.querySelectorAll('.app-tile').forEach(tile => {
+            tile.style.display = 'flex';
+            tile.style.opacity = '1';
+            tile.style.visibility = 'visible';
+        });
+
+        if (typeof window.navigateTo === "function") {
+            window.navigateTo("home");
+        } else {
+            console.log("✅ Cards abertos automaticamente!");
+        }
+    }
+
+    function autoBootApp() {
+        const overlay = document.getElementById('fsOverlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+            overlay.remove();
+        }
+        autoShowCards();
+        console.log("🚀 autoBootApp executada com sucesso!");
+    }
+
+    window.autoBootApp = autoBootApp;
+    window.autoShowCards = autoShowCards;
+
+    // Disparar imediatamente e após o carregamento
+    window.addEventListener("DOMContentLoaded", autoBootApp);
+    window.addEventListener("load", autoBootApp);
+    setTimeout(autoBootApp, 300);
+    setTimeout(autoBootApp, 800);
+</script>
+</body>
+</html>

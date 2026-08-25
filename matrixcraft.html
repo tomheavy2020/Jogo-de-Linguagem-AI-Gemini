@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX CRAFT 3D ULTRA</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-cyan: #00f0ff;
+            --neon-gold: #ffb000;
+            --neon-red: #ff3b3b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: #000; color: var(--neon);
+            font-family: 'Courier New', monospace;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: none;
+        }
+        #gameCanvas { width: 100%; height: 100%; display: block; }
+
+        .hud {
+            position: fixed; top: 10px; left: 10px; right: 10px;
+            z-index: 10; display: flex; justify-content: space-between;
+            pointer-events: none; gap: 8px;
+        }
+        .hud-box {
+            background: rgba(0,10,0,0.85); border: 1px solid var(--neon);
+            border-radius: 10px; padding: 8px 12px;
+            font-size: 10px; letter-spacing: 1px;
+            backdrop-filter: blur(8px); pointer-events: auto;
+            box-shadow: 0 0 15px rgba(0,255,65,0.2);
+        }
+        .hud-box button {
+            background: transparent; border: 1px solid var(--neon-red);
+            color: var(--neon-red); padding: 3px 10px; border-radius: 6px;
+            cursor: pointer; font-family: inherit; font-size: 9px;
+            margin-left: 6px;
+        }
+        .crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            width: 16px; height: 16px; z-index: 5; pointer-events: none;
+        }
+        .crosshair::before, .crosshair::after {
+            content: ''; position: absolute; background: var(--neon);
+            box-shadow: 0 0 5px var(--neon);
+        }
+        .crosshair::before { top: 50%; left: 0; width: 100%; height: 1px; }
+        .crosshair::after { left: 50%; top: 0; height: 100%; width: 1px; }
+
+        .controls-hint {
+            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 10; background: rgba(0,10,0,0.85);
+            border: 1px solid var(--neon); border-radius: 10px;
+            padding: 6px 14px; font-size: 8px;
+            pointer-events: none; text-align: center;
+            letter-spacing: 1px; white-space: nowrap;
+        }
+
+        .block-selector {
+            position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+            z-index: 10; display: flex; gap: 5px; pointer-events: auto;
+        }
+        .block-btn {
+            width: 35px; height: 35px; border-radius: 8px;
+            border: 2px solid var(--neon); cursor: pointer;
+            font-size: 16px; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .block-btn.active {
+            border-color: var(--neon-gold);
+            box-shadow: 0 0 15px var(--neon-gold);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div class="crosshair"></div>
+
+    <div class="hud">
+        <div class="hud-box">
+            🎮 MATRIX CRAFT | <span id="posDisplay">0,0,0</span>
+        </div>
+        <div class="hud-box">
+            🧱 <span id="blockCount">0</span> | <span id="fpsDisplay">60 FPS</span>
+            <button onclick="showMultiplayer()">👥</button> <button onclick="window.location.href='/index.html'">✕</button>
+        </div>
+    </div>
+
+    <div class="block-selector" id="blockSelector">
+        <button class="block-btn active" onclick="selectBlock(0, this)">🟩</button>
+        <button class="block-btn" onclick="selectBlock(1, this)">🟫</button>
+        <button class="block-btn" onclick="selectBlock(2, this)">⬜</button>
+        <button class="block-btn" onclick="selectBlock(3, this)">🟨</button>
+        <button class="block-btn" onclick="selectBlock(4, this)">🔵</button>
+        <button class="block-btn" onclick="selectBlock(5, this)">🟪</button>
+    </div>
+
+    <div id="mpModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;flex-direction:column;gap:10px;"><div style="font-size:16px;font-weight:bold;color:#00ff41;">👥 MULTIPLAYER</div><button onclick="createCraftRoom()" style="padding:12px 24px;border-radius:10px;border:1px solid #00ff41;background:rgba(0,255,65,0.1);color:#00ff41;font-family:inherit;font-size:12px;cursor:pointer;">🎮 CRIAR SALA</button><button onclick="document.getElementById('craftRoomInput').style.display='block'" style="padding:12px 24px;border-radius:10px;border:1px solid #00f0ff;background:rgba(0,240,255,0.1);color:#00f0ff;font-family:inherit;font-size:12px;cursor:pointer;">🔑 ENTRAR</button><input id="craftRoomInput" placeholder="CÓDIGO" maxlength="4" onkeydown="if(event.key==='Enter')joinCraftRoom(this.value.toUpperCase())" style="display:none;padding:10px;border-radius:8px;border:1px solid #00ff41;background:rgba(0,0,0,0.8);color:#00ff41;font-family:inherit;font-size:16px;text-align:center;letter-spacing:5px;width:120px;" /><div id="craftRoomCode" style="display:none;font-size:24px;color:#ffb000;letter-spacing:5px;"></div><div id="mpStatus" style="font-size:10px;color:#00f0ff;"></div><button onclick="hideMultiplayer()" style="padding:6px 16px;border-radius:8px;border:1px solid #ff3b3b;background:transparent;color:#ff3b3b;font-family:inherit;font-size:10px;cursor:pointer;">✕ FECHAR</button></div>
+
+<div class="controls-hint">
+        WASD=Mover | Mouse=Olhar | Clique=Colocar | Direito=Quebrar | Espaço=Pular
+    </div>
+
+<script>
+// ================= MATRIX CRAFT 3D ULTRA =================
+const canvas = document.getElementById('gameCanvas');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050a05);
+scene.fog = new THREE.Fog(0x050a05, 25, 60);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 8, 15);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// ===== LUZ =====
+const ambient = new THREE.AmbientLight(0x00ff41, 0.4);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+sun.position.set(20, 30, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.width = 2048;
+sun.shadow.mapSize.height = 2048;
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 100;
+sun.shadow.camera.left = -30;
+sun.shadow.camera.right = 30;
+sun.shadow.camera.top = 30;
+sun.shadow.camera.bottom = -30;
+scene.add(sun);
+
+const moonLight = new THREE.DirectionalLight(0x00f0ff, 0.2);
+moonLight.position.set(-10, 15, -10);
+scene.add(moonLight);
+
+// ===== MATERIAIS DOS BLOCOS =====
+function createTexture(baseColor, borderColor, pattern = 'grid') {
+    const c = document.createElement('canvas');
+    c.width = 16; c.height = 16;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, 16, 16);
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+
+    if(pattern === 'grid') {
+        for(let i = 0; i <= 16; i += 4) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 16); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(16, i); ctx.stroke();
+        }
+    } else if(pattern === 'bricks') {
+        for(let y = 0; y < 16; y += 4) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(16, y); ctx.stroke();
+        }
+        for(let y = 0; y < 16; y += 8) {
+            for(let x = 0; x < 16; x += 8) {
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 4); ctx.stroke();
+            }
+        }
+    } else if(pattern === 'dots') {
+        for(let x = 4; x < 16; x += 8) {
+            for(let y = 4; y < 16; y += 8) {
+                ctx.fillStyle = borderColor;
+                ctx.fillRect(x, y, 2, 2);
+            }
+        }
+    }
+
+    const texture = new THREE.CanvasTexture(c);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    return texture;
+}
+
+const blockTypes = [
+    { name: 'Grama', material: new THREE.MeshLambertMaterial({ map: createTexture('#0a3a0a', '#00ff41', 'grid') }) },
+    { name: 'Terra', material: new THREE.MeshLambertMaterial({ map: createTexture('#4a2a0a', '#6a4a2a', 'dots') }) },
+    { name: 'Pedra', material: new THREE.MeshLambertMaterial({ map: createTexture('#3a3a3a', '#5a5a5a', 'bricks') }) },
+    { name: 'Madeira', material: new THREE.MeshLambertMaterial({ map: createTexture('#5a3a1a', '#7a5a3a', 'grid') }) },
+    { name: 'Vidro', material: new THREE.MeshLambertMaterial({ map: createTexture('#0a2a3a', '#00f0ff', 'grid'), transparent: true, opacity: 0.5 }) },
+    { name: 'Neon', material: new THREE.MeshLambertMaterial({ map: createTexture('#00ff41', '#7dffb0', 'grid') }) }
+];
+
+let selectedBlockIndex = 0;
+
+// ===== MUNDO =====
+const world = new THREE.Group();
+scene.add(world);
+const blocks = [];
+let blockCount = 0;
+
+function createBlock(x, y, z, typeIndex) {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const mesh = new THREE.Mesh(geometry, blockTypes[typeIndex].material);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData = { type: typeIndex };
+    world.add(mesh);
+    blocks.push(mesh);
+    blockCount++;
+    return mesh;
+}
+
+function generateWorld() {
+    const size = 20;
+    for(let x = -size/2; x < size/2; x++) {
+        for(let z = -size/2; z < size/2; z++) {
+            const height = Math.floor(Math.random() * 4) + 1;
+            for(let y = 0; y < height; y++) {
+                if(y === height - 1 && Math.random() > 0.3) {
+                    createBlock(x, y, z, 0); // Grama
+                } else if(y > height - 3) {
+                    createBlock(x, y, z, 1); // Terra
+                } else {
+                    createBlock(x, y, z, 2); // Pedra
+                }
+            }
+        }
+    }
+
+    // Árvores
+    for(let i = 0; i < 8; i++) {
+        const x = Math.floor(Math.random() * 18) - 9;
+        const z = Math.floor(Math.random() * 18) - 9;
+        const baseY = 3;
+
+        // Tronco
+        for(let h = 0; h < 3; h++) {
+            createBlock(x, baseY + h, z, 3);
+        }
+        // Copa
+        createBlock(x, baseY + 3, z, 5);
+        createBlock(x + 1, baseY + 3, z, 5);
+        createBlock(x - 1, baseY + 3, z, 5);
+        createBlock(x, baseY + 3, z + 1, 5);
+        createBlock(x, baseY + 3, z - 1, 5);
+        createBlock(x, baseY + 4, z, 5);
+    }
+
+    // Casa Matrix
+    const houseX = -3, houseY = 3, houseZ = 3;
+    for(let h = 0; h < 3; h++) {
+        for(let w = 0; w < 3; w++) {
+            for(let d = 0; d < 3; d++) {
+                if(h === 0 || h === 2 || w === 0 || w === 2 || d === 0 || d === 2) {
+                    if(!(w === 1 && h === 0 && d === 0) && !(w === 1 && h === 1 && d === 0)) {
+                        createBlock(houseX + w, houseY + h, houseZ + d, 2);
+                    }
+                }
+            }
+        }
+    }
+    // Telhado neon
+    createBlock(houseX + 1, houseY + 3, houseZ + 1, 5);
+    createBlock(houseX, houseY + 3, houseZ + 1, 4);
+    createBlock(houseX + 2, houseY + 3, houseZ + 1, 4);
+
+    document.getElementById('blockCount').textContent = blockCount;
+}
+
+generateWorld();
+
+// ===== CONTROLES =====
+const keys = {};
+let yaw = 0, pitch = 0;
+const velocity = { x: 0, y: 0, z: 0 };
+const playerSpeed = 0.12;
+const gravity = 0.008;
+const jumpForce = 0.25;
+let onGround = false;
+const playerHeight = 4;
+
+document.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if(e.key === ' ' && onGround) {
+        velocity.y = jumpForce;
+        onGround = false;
+    }
+});
+document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+document.addEventListener('mousemove', (e) => {
+    yaw -= e.movementX * 0.002;
+    pitch -= e.movementY * 0.002;
+    pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
+});
+
+canvas.addEventListener('click', (e) => {
+    if(e.button === 0) placeBlock();
+    else if(e.button === 2) breakBlock();
+});
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+const raycaster = new THREE.Raycaster();
+function getTarget() {
+    raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+    const intersects = raycaster.intersectObjects(blocks);
+    return intersects.length > 0 ? intersects[0] : null;
+}
+
+function placeBlock() {
+    const hit = getTarget();
+    if(hit && hit.distance < 10) {
+        const pos = hit.object.position.clone().add(hit.face.normal);
+        pos.x = Math.round(pos.x);
+        pos.y = Math.round(pos.y);
+        pos.z = Math.round(pos.z);
+
+        const exists = blocks.some(b =>
+            Math.round(b.position.x) === pos.x &&
+            Math.round(b.position.y) === pos.y &&
+            Math.round(b.position.z) === pos.z
+        );
+        if(!exists) {
+            createBlock(pos.x, pos.y, pos.z, selectedBlockIndex);
+            document.getElementById('blockCount').textContent = blockCount;
+        }
+    }
+}
+
+function breakBlock() {
+    const hit = getTarget();
+    if(hit && hit.distance < 10) {
+        world.remove(hit.object);
+        blocks.splice(blocks.indexOf(hit.object), 1);
+        blockCount--;
+        document.getElementById('blockCount').textContent = blockCount;
+    }
+}
+
+function selectBlock(index, btn) {
+    selectedBlockIndex = index;
+    document.querySelectorAll('.block-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+// Mobile touch
+let touchX = 0, touchY = 0;
+canvas.addEventListener('touchstart', (e) => {
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+    if(e.touches.length === 2) placeBlock();
+});
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - touchX;
+    const dy = e.touches[0].clientY - touchY;
+    yaw -= dx * 0.005;
+    pitch -= dy * 0.005;
+    pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+});
+
+// ===== LOOP =====
+let frameCount = 0, lastFpsUpdate = Date.now();
+
+function update() {
+    const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+    const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+
+    const moveX = (keys['d'] ? 1 : 0) - (keys['a'] ? 1 : 0);
+    const moveZ = (keys['w'] ? 1 : 0) - (keys['s'] ? 1 : 0);
+
+    velocity.x = (forward.x * moveZ + right.x * moveX) * playerSpeed;
+    velocity.z = (forward.z * moveZ + right.z * moveX) * playerSpeed;
+    velocity.y -= gravity;
+
+    camera.position.x += velocity.x;
+    camera.position.y += velocity.y;
+    camera.position.z += velocity.z;
+
+    if(camera.position.y < playerHeight) {
+        camera.position.y = playerHeight;
+        velocity.y = 0;
+        onGround = true;
+    }
+
+    const limit = 12;
+    camera.position.x = Math.max(-limit, Math.min(limit, camera.position.x));
+    camera.position.z = Math.max(-limit, Math.min(limit, camera.position.z));
+
+    camera.rotation.set(pitch, yaw, 0);
+
+    document.getElementById('posDisplay').textContent =
+        Math.round(camera.position.x) + ',' + Math.round(camera.position.y) + ',' + Math.round(camera.position.z);
+
+    // FPS
+    frameCount++;
+    const now = Date.now();
+    if(now - lastFpsUpdate > 1000) {
+        document.getElementById('fpsDisplay').textContent = frameCount + ' FPS';
+        frameCount = 0;
+        lastFpsUpdate = now;
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    update();
+    renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+<script src="craft-mp.js"></script>
+</body>
+</html>

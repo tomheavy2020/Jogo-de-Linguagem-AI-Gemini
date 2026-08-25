@@ -1,0 +1,31 @@
+<div class="sat-ar-stage">
+  <div class="sat-ar-header">
+    <span>🛰️ AR SAT TRACKER</span>
+    <button class="sat-back-btn" onclick="navigateTo('hub')">← Voltar</button>
+  </div>
+
+  <video id="ar-camera" autoplay playsinline></video>
+
+  <div class="ar-hud">
+    <div class="ar-target" id="satMarker">🛰️</div>
+    <div class="ar-compass" id="arCompass">
+      <div class="compass-needle" id="compassNeedle"></div>
+    </div>
+  </div>
+
+  <div class="sat-ar-info">
+    <div class="sat-info-card"><span>📍 Latitude</span><span id="sat-lat">--</span></div>
+    <div class="sat-info-card"><span>📍 Longitude</span><span id="sat-lng">--</span></div>
+    <div class="sat-info-card"><span>📏 Altitude</span><span id="sat-alt">-- km</span></div>
+    <div class="sat-info-card"><span>⏱️ Próxima Passagem</span><span id="sat-pass">--</span></div>
+  </div>
+
+  <div class="sat-ar-controls">
+    <select id="sat-select" class="sat-ar-select">
+      <option value="25544">ISS (Estação Espacial)</option>
+      <option value="33591">AIST 2D (Russo)</option>
+      <option value="40354">Tiangong (China)</option>
+    </select>
+    <button id="sat-track-btn" class="sat-ar-btn">🔭 ATIVAR RASTREADOR</button>
+  </div>
+</div>

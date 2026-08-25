@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🔊 Power Matrix - Amplificador</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            background: radial-gradient(ellipse at center, #0a0f0a, #000 70%);
+        }
+        /* ===== FUNDO NEON ===== */
+        .bg-glow {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(0,255,65,0.03), transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(0,234,255,0.03), transparent 50%);
+            pointer-events: none;
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            background: rgba(0, 10, 5, 0.85);
+            border: 2px solid rgba(0, 255, 65, 0.2);
+            border-radius: 30px;
+            padding: 24px 20px 30px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 60px rgba(0,255,65,0.05), inset 0 0 60px rgba(0,255,65,0.02);
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .header .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 900;
+            color: #00ff41;
+            text-shadow: 0 0 30px rgba(0,255,65,0.3);
+            letter-spacing: 2px;
+        }
+        .header .logo span { color: #00f0ff; }
+        .header .back-btn {
+            background: rgba(0,255,65,0.08);
+            border: 1px solid rgba(0,255,65,0.2);
+            border-radius: 12px;
+            padding: 6px 14px;
+            color: #00ff41;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+        }
+        .header .back-btn:hover {
+            background: rgba(0,255,65,0.15);
+            box-shadow: 0 0 20px rgba(0,255,65,0.1);
+        }
+
+        /* ===== STATUS DO SOM ===== */
+        .sound-status {
+            text-align: center;
+            padding: 8px 0 16px;
+            border-bottom: 1px solid rgba(0,255,65,0.06);
+            margin-bottom: 16px;
+        }
+        .sound-status .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 3px;
+        }
+        .sound-status .system {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            color: #00ff41;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+        .sound-status .system .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff41;
+            margin-right: 8px;
+            animation: pulseDot 1.2s ease-in-out infinite;
+        }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.7); }
+        }
+
+        /* ===== VISUALIZADOR (EQUALIZADOR GRÁFICO) ===== */
+        .visualizer {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 10, 5, 0.5);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(0,255,65,0.08);
+            margin-bottom: 16px;
+        }
+        .visualizer canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .visualizer .watermark {
+            position: absolute;
+            bottom: 10px;
+            right: 14px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8px;
+            color: rgba(0,255,65,0.1);
+            letter-spacing: 2px;
+            pointer-events: none;
+        }
+
+        /* ===== CONTROLES ===== */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .controls .row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .controls .row label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 1px;
+            min-width: 50px;
+        }
+        .controls .row input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            background: rgba(0,255,65,0.08);
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .controls .row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ff41;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0,255,65,0.3);
+            border: 2px solid #000;
+        }
+        .controls .row input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ff41;
+            cursor: pointer;
+            border: 2px solid #000;
+        }
+        .controls .row .value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            color: #00ff41;
+            min-width: 36px;
+            text-align: right;
+        }
+
+        /* ===== BOTÕES ===== */
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .actions .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid rgba(0,255,65,0.2);
+            border-radius: 12px;
+            background: rgba(0,255,65,0.04);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            min-width: 80px;
+        }
+        .actions .btn:hover {
+            background: rgba(0,255,65,0.08);
+            border-color: rgba(0,255,65,0.4);
+            box-shadow: 0 0 30px rgba(0,255,65,0.05);
+        }
+        .actions .btn:active {
+            transform: scale(0.95);
+        }
+        .actions .btn.primary {
+            background: linear-gradient(90deg, #00ff41, #00f0ff);
+            border: none;
+            color: #000;
+            box-shadow: 0 0 30px rgba(0,255,65,0.15);
+        }
+        .actions .btn.primary:hover {
+            box-shadow: 0 0 50px rgba(0,255,65,0.25);
+        }
+        .actions .btn.primary:active {
+            transform: scale(0.95);
+        }
+
+        /* ===== INFO ===== */
+        .info {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 4px 0;
+            border-top: 1px solid rgba(0,255,65,0.06);
+            margin-top: 4px;
+        }
+        .info .item {
+            text-align: center;
+        }
+        .info .item .label {
+            font-size: 7px;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 1px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .info .item .value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            color: #00ff41;
+            margin-top: 2px;
+        }
+        .info .item .value.gold { color: #ffb000; }
+        .info .item .value.cyan { color: #00f0ff; }
+
+        @media (max-width: 380px) {
+            .container { padding: 16px 14px 20px; }
+            .visualizer { height: 150px; }
+            .controls .row label { font-size: 8px; min-width: 36px; }
+            .actions .btn { font-size: 8px; padding: 10px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="container">
+    <!-- HEADER -->
+    <div class="header">
+        <span class="logo">⬡ <span>MATRIX</span> OS</span>
+        <a href="/index.html" class="back-btn">✕ VOLTAR</a>
+    </div>
+
+    <!-- STATUS -->
+    <div class="sound-status">
+        <div class="title">SISTEMA DE ÁUDIO</div>
+        <div class="system"><span class="dot"></span> MATRIX BOOST™ — ATIVO</div>
+    </div>
+
+    <!-- VISUALIZADOR -->
+    <div class="visualizer">
+        <canvas id="equalizer"></canvas>
+        <div class="watermark">⬡ POWER MATRIX</div>
+    </div>
+
+    <!-- CONTROLES -->
+    <div class="controls">
+        <div class="row">
+            <label>VOLUME</label>
+            <input type="range" id="volume" min="0" max="100" value="70">
+            <span class="value" id="volumeValue">70%</span>
+        </div>
+        <div class="row">
+            <label>BASS</label>
+            <input type="range" id="bass" min="0" max="100" value="50">
+            <span class="value" id="bassValue">50%</span>
+        </div>
+        <div class="row">
+            <label>TREBLE</label>
+            <input type="range" id="treble" min="0" max="100" value="50">
+            <span class="value" id="trebleValue">50%</span>
+        </div>
+        <div class="row">
+            <label>SURROUND</label>
+            <input type="range" id="surround" min="0" max="100" value="60">
+            <span class="value" id="surroundValue">60%</span>
+        </div>
+    </div>
+
+    <!-- AÇÕES -->
+    <div class="actions">
+        <button class="btn" id="playBtn">▶ PLAY</button>
+        <button class="btn" id="effectBtn">✨ EFX</button>
+        <button class="btn primary" id="boostBtn">⚡ MATRIX BOOST</button>
+    </div>
+
+    <!-- INFO -->
+    <div class="info">
+        <div class="item">
+            <div class="label">SISTEMA</div>
+            <div class="value cyan">MATRIX BOOST™</div>
+        </div>
+        <div class="item">
+            <div class="label">POTÊNCIA</div>
+            <div class="value gold" id="powerDisplay">100%</div>
+        </div>
+        <div class="item">
+            <div class="label">MODO</div>
+            <div class="value" id="modeDisplay">SURROUND</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+//  POWER MATRIX - EQUALIZADOR NEON
+// ============================================================
+
+// ===== ELEMENTOS =====
+const canvas = document.getElementById('equalizer');
+const ctx = canvas.getContext('2d');
+const volumeSlider = document.getElementById('volume');
+const bassSlider = document.getElementById('bass');
+const trebleSlider = document.getElementById('treble');
+const surroundSlider = document.getElementById('surround');
+const volumeValue = document.getElementById('volumeValue');
+const bassValue = document.getElementById('bassValue');
+const trebleValue = document.getElementById('trebleValue');
+const surroundValue = document.getElementById('surroundValue');
+const playBtn = document.getElementById('playBtn');
+const effectBtn = document.getElementById('effectBtn');
+const boostBtn = document.getElementById('boostBtn');
+const powerDisplay = document.getElementById('powerDisplay');
+const modeDisplay = document.getElementById('modeDisplay');
+
+// ===== ESTADO =====
+let isPlaying = false;
+let boostActive = false;
+let effectMode = 0; // 0: normal, 1: neon, 2: pulse, 3: wave
+let audioContext = null;
+let analyser = null;
+let dataArray = null;
+let animationId = null;
+let frequencyData = [];
+let bars = 64;
+let audioElements = [];
+
+// ===== REDIMENSIONAR CANVAS =====
+function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * 1.5;
+    canvas.height = rect.height * 1.5;
+    // Ajusta barra tamanho
+    bars = Math.floor(canvas.width / 8);
+    if (bars > 80) bars = 80;
+    if (bars < 20) bars = 20;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ===== GERAR DADOS DE ÁUDIO SIMULADOS =====
+function generateAudioData() {
+    const data = [];
+    const baseAmplitude = isPlaying ? 0.7 : 0.1;
+    const boost = boostActive ? 1.5 : 1.0;
+    const bassBoost = parseInt(bassSlider.value) / 100;
+    const trebleBoost = parseInt(trebleSlider.value) / 100;
+    const surround = parseInt(surroundSlider.value) / 100;
+    const volume = parseInt(volumeSlider.value) / 100;
+
+    for (let i = 0; i < bars; i++) {
+        // Frequência base (simula espectro de áudio)
+        let freq = Math.sin(i / bars * Math.PI * 2 + Date.now() / 2000);
+        let amp = 0.3 + 0.7 * Math.abs(freq);
+
+        // Simula batida com efeitos
+        const beat = Math.sin(Date.now() / 400) * 0.3 + 0.7;
+        const random = Math.random() * 0.3;
+
+        // Aplica equalização
+        let bassEffect = 1 + (1 - i / bars) * bassBoost * 0.8;
+        let trebleEffect = 1 + (i / bars) * trebleBoost * 0.8;
+
+        // Surround effect (simula espacialidade)
+        let surroundEffect = 1 + Math.sin(i / bars * Math.PI * 2 + Date.now() / 3000) * surround * 0.3;
+
+        let value = (amp * beat * baseAmplitude * boost * volume) * bassEffect * trebleEffect * surroundEffect;
+        value = Math.min(Math.max(value, 0.05), 1.0);
+
+        // Aplica efeitos visuais
+        if (effectMode === 1) { // Neon
+            value = Math.pow(value, 1.2) * 1.1;
+        } else if (effectMode === 2) { // Pulse
+            value = value * (0.5 + 0.5 * Math.sin(Date.now() / 200 + i / 5));
+        } else if (effectMode === 3) { // Wave
+            value = value * (0.7 + 0.3 * Math.sin(Date.now() / 300 + i / 3));
+        }
+
+        value = Math.min(Math.max(value, 0.01), 1.0);
+        data.push(value);
+    }
+    return data;
+}
+
+// ===== DESENHAR EQUALIZADOR =====
+function drawEqualizer() {
+    const width = canvas.width;
+    const height = canvas.height;
+    const barWidth = width / bars;
+    const data = generateAudioData();
+
+    // Limpa com fade
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.fillRect(0, 0, width, height);
+
+    // Linha de base
+    const baseY = height * 0.85;
+
+    // Cores
+    const colors = [
+        '#00ff41',
+        '#00f0ff',
+        '#ffb000',
+        '#ff4566',
+        '#b000ff',
+        '#4dff88'
+    ];
+
+    // Desenha cada barra
+    for (let i = 0; i < data.length; i++) {
+        const x = i * barWidth;
+        const value = data[i];
+        const barHeight = value * height * 0.7;
+        const y = baseY - barHeight;
+
+        // Cor baseada na altura
+        const colorIndex = Math.floor(value * (colors.length - 1));
+        const color = colors[Math.min(colorIndex, colors.length - 1)];
+
+        // Gradiente da barra
+        const grad = ctx.createLinearGradient(x, baseY, x, y);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.1, color + '30');
+        grad.addColorStop(0.5, color);
+        grad.addColorStop(1, color + 'ff');
+
+        // Sombra
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20 + value * 30;
+
+        // Arredondado
+        const radius = 3;
+        ctx.beginPath();
+        ctx.roundRect(x + 1, y, barWidth - 2, barHeight, radius);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Brilho no topo
+        if (value > 0.3) {
+            ctx.shadowBlur = 40;
+            ctx.fillStyle = color + '40';
+            ctx.beginPath();
+            ctx.roundRect(x + 2, y, barWidth - 4, 4, 2);
+            ctx.fill();
+        }
+
+        ctx.shadowBlur = 0;
+    }
+
+    // Linhas de grade sutis
+    ctx.strokeStyle = 'rgba(0,255,65,0.04)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+        const y = baseY - (height * 0.7 * i / 4);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+}
+
+// ===== ROUND RECT HELPER =====
+CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    this.moveTo(x + r, y);
+    this.lineTo(x + w - r, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.lineTo(x + w, y + h - r);
+    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.lineTo(x + r, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.lineTo(x, y + r);
+    this.quadraticCurveTo(x, y, x + r, y);
+    return this;
+};
+
+// ===== LOOP DE ANIMAÇÃO =====
+function animate() {
+    drawEqualizer();
+    animationId = requestAnimationFrame(animate);
+}
+
+// ===== INICIAR ANIMAÇÃO =====
+animate();
+
+// ===== CONTROLES =====
+// Volume
+volumeSlider.addEventListener('input', () => {
+    const val = volumeSlider.value;
+    volumeValue.textContent = val + '%';
+    updatePowerDisplay();
+});
+
+// Bass
+bassSlider.addEventListener('input', () => {
+    bassValue.textContent = bassSlider.value + '%';
+});
+
+// Treble
+trebleSlider.addEventListener('input', () => {
+    trebleValue.textContent = trebleSlider.value + '%';
+});
+
+// Surround
+surroundSlider.addEventListener('input', () => {
+    surroundValue.textContent = surroundSlider.value + '%';
+    modeDisplay.textContent = parseInt(surroundSlider.value) > 50 ? 'SURROUND' : 'STEREO';
+});
+
+// Play/Pause
+playBtn.addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    playBtn.textContent = isPlaying ? '⏸ PAUSE' : '▶ PLAY';
+    if (isPlaying) {
+        // Simula áudio
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        // Toca um tom suave (som ambiente)
+        playTone();
+    } else {
+        stopTone();
+    }
+});
+
+// Efeitos
+effectBtn.addEventListener('click', () => {
+    effectMode = (effectMode + 1) % 4;
+    const names = ['NORMAL', 'NEON', 'PULSE', 'WAVE'];
+    effectBtn.textContent = '✨ ' + names[effectMode];
+});
+
+// Matrix Boost
+boostBtn.addEventListener('click', () => {
+    boostActive = !boostActive;
+    boostBtn.textContent = boostActive ? '⚡ BOOST ON' : '⚡ MATRIX BOOST';
+    boostBtn.style.background = boostActive ?
+        'linear-gradient(90deg, #ffb000, #ff4566)' :
+        'linear-gradient(90deg, #00ff41, #00f0ff)';
+    boostBtn.style.color = boostActive ? '#000' : '#000';
+    updatePowerDisplay();
+});
+
+// ===== TOM DE ÁUDIO (SIMULA SOM) =====
+let oscillator = null;
+let gainNode = null;
+
+function playTone() {
+    try {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+
+        // Cria oscilador com várias frequências (som ambiente)
+        oscillator = audioContext.createOscillator();
+        gainNode = audioContext.createGain();
+
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(110, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.5);
+
+        gainNode.gain.setValueAtTime(0.03, audioContext.currentTime);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start();
+
+        // Adiciona harmônicos
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(165, audioContext.currentTime);
+        gain2.gain.setValueAtTime(0.015, audioContext.currentTime);
+        osc2.connect(gain2);
+        gain2.connect(audioContext.destination);
+        osc2.start();
+
+        audioElements.push(osc2, gain2);
+
+        // Varia a frequência
+        setInterval(() => {
+            if (isPlaying && oscillator) {
+                const freq = 80 + Math.random() * 200;
+                oscillator.frequency.exponentialRampToValueAtTime(freq, audioContext.currentTime + 0.1);
+            }
+        }, 500);
+
+    } catch (e) {
+        console.log('Áudio não disponível');
+    }
+}
+
+function stopTone() {
+    try {
+        if (oscillator) {
+            oscillator.stop();
+            oscillator.disconnect();
+            oscillator = null;
+        }
+        audioElements.forEach(el => {
+            try { el.stop(); } catch(e) {}
+            try { el.disconnect(); } catch(e) {}
+        });
+        audioElements = [];
+        if (gainNode) {
+            gainNode.disconnect();
+            gainNode = null;
+        }
+    } catch(e) {}
+}
+
+// ===== UPDATE POWER DISPLAY =====
+function updatePowerDisplay() {
+    const vol = parseInt(volumeSlider.value);
+    const boost = boostActive ? 30 : 0;
+    const total = Math.min(vol + boost, 100);
+    powerDisplay.textContent = total + '%';
+}
+
+// ===== INICIAR SOM AUTOMATICAMENTE (se possível) =====
+// Tenta iniciar o contexto de áudio no primeiro toque
+document.addEventListener('click', () => {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+}, { once: true });
+
+// ===== INICIALIZAÇÃO =====
+updatePowerDisplay();
+modeDisplay.textContent = 'SURROUND';
+console.log('🔊 Power Matrix iniciado!');
+</script>
+</body>
+</html>

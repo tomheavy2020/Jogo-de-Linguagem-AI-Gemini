@@ -1,0 +1,11 @@
+.tools-stage { padding: 20px; max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; background: #050505; }
+.tools-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid rgba(0,255,65,0.2); padding-bottom: 10px; }
+.tools-tab { background: transparent; border: 1px solid rgba(0,255,65,0.4); color: #00ff41; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: inherit; transition: 0.2s; }
+.tools-tab.active { background: #00ff41; color: #050505; box-shadow: 0 0 15px #00ff41; }
+.tools-panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+.compass-box { width: 200px; height: 200px; border-radius: 50%; border: 2px solid #00f0ff; position: relative; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(0,240,255,0.2); background: #0a0a0a; }
+.compass-needle { position: absolute; width: 4px; height: 80px; background: #ff3333; transform-origin: bottom center; bottom: 50%; box-shadow: 0 0 10px #ff3333; transition: transform 0.3s ease; }
+.flash-btn { padding: 20px 40px; border: 2px solid #00ff41; background: transparent; color: #00ff41; font-size: 20px; border-radius: 30px; cursor: pointer; font-family: inherit; }
+.flash-btn.on { background: #00ff41; color: #050505; box-shadow: 0 0 30px #00ff41; }
+.level-box { width: 200px; height: 200px; border: 2px solid #00ff41; border-radius: 10px; position: relative; background: #0a0a0a; overflow: hidden; box-shadow: 0 0 15px rgba(0,255,65,0.2); }
+.level-bubble { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #00f0ff; box-shadow: 0 0 20px #00f0ff; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: all 0.1s ease; }

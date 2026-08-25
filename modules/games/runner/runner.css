@@ -1,0 +1,81 @@
+.runner-stage {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #050505;
+  overflow: hidden;
+}
+#runner-canvas {
+  flex: 1;
+  width: 100%;
+  image-rendering: pixelated;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+}
+.runner-hud {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #00ff41;
+  text-shadow: 0 0 6px rgba(0,255,65,0.4);
+  background: #0a0a0a;
+}
+.runner-controls {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px;
+  background: #0a0a0a;
+  border-top: 1px solid rgba(0, 255, 65, 0.15);
+}
+.runner-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 255, 65, 0.4);
+  background: transparent;
+  color: #00ff41;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: manipulation;
+  transition: all 0.1s;
+}
+.runner-btn:active {
+  background: rgba(0, 255, 65, 0.15);
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+  transform: scale(0.95);
+}
+.runner-btn--jump {
+  border-color: rgba(0, 240, 255, 0.5);
+  color: #00f0ff;
+}
+.runner-btn--jump:active {
+  background: rgba(0, 240, 255, 0.15);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+}
+.runner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  z-index: 10;
+}
+.runner-overlay h2 {
+  color: #ff3333;
+  font-family: 'Courier New', monospace;
+  font-size: 28px;
+  text-shadow: 0 0 12px rgba(255, 51, 51, 0.5);
+  margin: 0;
+}

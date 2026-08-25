@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX RÉGUA</title>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-bright: #7dffb0;
+            --neon-cyan: #00f0ff;
+            --neon-gold: #ffb000;
+            --neon-red: #ff3b3b;
+            --bg: #000;
+            --panel: rgba(0, 10, 0, 0.9);
+            --border: rgba(0, 255, 65, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: radial-gradient(ellipse at 50% 30%, #0a1a0a 0%, #000 70%);
+            color: var(--neon); font-family: 'Courier New', monospace;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: manipulation;
+        }
+
+        .ruler-container {
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100dvw;
+            max-width: 500px; margin: 0 auto;
+            padding: 10px; gap: 8px;
+        }
+
+        /* Header */
+        .ruler-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 12px; background: var(--panel);
+            flex-shrink: 0;
+            box-shadow: 0 0 20px rgba(0,255,65,0.15);
+        }
+        .ruler-title {
+            font-size: 13px; font-weight: bold; letter-spacing: 2px;
+            text-shadow: 0 0 15px var(--neon);
+        }
+        .ruler-unit {
+            font-size: 9px; color: var(--neon-cyan);
+        }
+        .ruler-close {
+            background: transparent; border: 1px solid var(--neon-red);
+            color: var(--neon-red); padding: 4px 12px; border-radius: 8px;
+            cursor: pointer; font-family: inherit; font-size: 10px;
+        }
+
+        /* Área da régua */
+        .ruler-area {
+            flex: 1; position: relative;
+            border: 2px solid var(--border); border-radius: 14px;
+            background: rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0,255,65,0.05);
+        }
+        #rulerCanvas { width: 100%; height: 100%; }
+
+        /* Modo de medição */
+        .measure-display {
+            text-align: center; padding: 8px;
+            border: 1px solid var(--border); border-radius: 10px;
+            background: var(--panel); flex-shrink: 0;
+            font-size: 14px; font-weight: bold;
+            text-shadow: 0 0 10px var(--neon);
+        }
+
+        /* Controles */
+        .ruler-controls {
+            display: flex; gap: 6px; flex-shrink: 0;
+        }
+        .ruler-btn {
+            flex: 1; padding: 10px; border-radius: 10px;
+            background: var(--panel); border: 1px solid var(--border);
+            color: var(--neon); cursor: pointer; font-family: inherit;
+            font-size: 10px; font-weight: bold; transition: all 0.2s;
+        }
+        .ruler-btn:active {
+            transform: scale(0.94);
+            background: rgba(0,255,65,0.15);
+        }
+        .ruler-btn.active {
+            border-color: var(--neon);
+            box-shadow: 0 0 15px rgba(0,255,65,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="ruler-container">
+        <div class="ruler-header">
+            <span class="ruler-title">📏 MATRIX RÉGUA</span>
+            <span class="ruler-unit" id="unitDisplay">CENTÍMETROS</span>
+            <button class="ruler-close" onclick="window.location.href='/tools.html'">✕</button>
+        </div>
+
+        <div class="ruler-area">
+            <canvas id="rulerCanvas"></canvas>
+        </div>
+
+        <div class="measure-display" id="measureDisplay">
+            Toque e arraste para medir
+        </div>
+
+        <div class="ruler-controls">
+            <button class="ruler-btn active" onclick="setUnit('cm', this)">📏 CM</button>
+            <button class="ruler-btn" onclick="setUnit('inch', this)">📐 POLEGADAS</button>
+            <button class="ruler-btn" onclick="resetMeasure()">🔄 LIMPAR</button>
+            <button class="ruler-btn" onclick="calibrate()">⚙️ CALIBRAR</button>
+        </div>
+    </div>
+
+<script>
+// ================= MATRIX RÉGUA =================
+const canvas = document.getElementById('rulerCanvas');
+const ctx = canvas.getContext('2d');
+
+let unit = 'cm'; // 'cm' ou 'inch'
+let measureStart = null;
+let measureEnd = null;
+let isMeasuring = false;
+let dpi = 96; // DPI padrão (1cm = ~37.8px a 96dpi)
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    drawRuler();
+}
+resize();
+window.addEventListener('resize', resize);
+
+function setUnit(newUnit, btn) {
+    unit = newUnit;
+    document.querySelectorAll('.ruler-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('unitDisplay').textContent = unit === 'cm' ? 'CENTÍMETROS' : 'POLEGADAS';
+    drawRuler();
+}
+
+function getPixelsPerUnit() {
+    if(unit === 'cm') {
+        return dpi / 2.54; // pixels por centímetro
+    } else {
+        return dpi; // pixels por polegada
+    }
+}
+
+function drawRuler() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const pxPerUnit = getPixelsPerUnit();
+
+    // Fundo
+    ctx.fillStyle = 'rgba(0, 20, 5, 0.5)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Régua principal
+    const rulerY = h / 2;
+    const rulerHeight = h * 0.6;
+    const rulerTop = rulerY - rulerHeight / 2;
+
+    // Corpo da régua
+    const rulerGrad = ctx.createLinearGradient(0, rulerTop, 0, rulerTop + rulerHeight);
+    rulerGrad.addColorStop(0, '#2a2a2a');
+    rulerGrad.addColorStop(0.1, '#1a1a1a');
+    rulerGrad.addColorStop(0.9, '#1a1a1a');
+    rulerGrad.addColorStop(1, '#2a2a2a');
+    ctx.fillStyle = rulerGrad;
+    roundRect(ctx, 0, rulerTop, w, rulerHeight, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,255,65,0.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Marcações
+    const totalUnits = w / pxPerUnit;
+
+    for(let i = 0; i <= totalUnits; i++) {
+        const x = i * pxPerUnit;
+
+        // Marcações principais (cada 1 unidade)
+        const isMajor = i % 1 === 0;
+        const isMedium = i % 0.5 === 0;
+        const isMinor = i % 0.1 === 0;
+
+        if(isMajor) {
+            ctx.strokeStyle = '#00ff41';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, rulerTop + 5);
+            ctx.lineTo(x, rulerTop + rulerHeight * 0.6);
+            ctx.stroke();
+
+            // Número
+            ctx.fillStyle = '#00ff41';
+            ctx.font = 'bold 12px "Courier New", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(i.toString(), x, rulerTop + rulerHeight * 0.75);
+        } else if(isMedium) {
+            ctx.strokeStyle = 'rgba(0,255,65,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x, rulerTop + 10);
+            ctx.lineTo(x, rulerTop + rulerHeight * 0.5);
+            ctx.stroke();
+        } else if(isMinor) {
+            ctx.strokeStyle = 'rgba(0,255,65,0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, rulerTop + 15);
+            ctx.lineTo(x, rulerTop + rulerHeight * 0.35);
+            ctx.stroke();
+        }
+    }
+
+    // Linha de medição
+    if(measureStart && measureEnd) {
+        const startX = measureStart.x;
+        const endX = measureEnd.x;
+
+        ctx.strokeStyle = '#ffb000';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#ffb000';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(startX, rulerTop - 20);
+        ctx.lineTo(startX, rulerTop + rulerHeight + 20);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(endX, rulerTop - 20);
+        ctx.lineTo(endX, rulerTop + rulerHeight + 20);
+        ctx.stroke();
+
+        // Seta de medição
+        ctx.beginPath();
+        ctx.moveTo(startX, rulerTop - 35);
+        ctx.lineTo(endX, rulerTop - 35);
+        ctx.stroke();
+
+        // Setas
+        drawArrow(ctx, startX, rulerTop - 35, 'left');
+        drawArrow(ctx, endX, rulerTop - 35, 'right');
+
+        ctx.shadowBlur = 0;
+
+        // Calcular distância
+        const distancePx = Math.abs(endX - startX);
+        const distanceUnits = distancePx / pxPerUnit;
+        const displayText = distanceUnits.toFixed(2) + (unit === 'cm' ? ' cm' : ' in');
+
+        document.getElementById('measureDisplay').textContent = displayText;
+    }
+}
+
+function drawArrow(ctx, x, y, dir) {
+    ctx.fillStyle = '#ffb000';
+    ctx.beginPath();
+    if(dir === 'left') {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 8, y - 5);
+        ctx.lineTo(x + 8, y + 5);
+    } else {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 8, y - 5);
+        ctx.lineTo(x - 8, y + 5);
+    }
+    ctx.closePath();
+    ctx.fill();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+// Touch events para medir
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    measureStart = { x };
+    measureEnd = { x };
+    isMeasuring = true;
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if(!isMeasuring) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    measureEnd = { x };
+    drawRuler();
+});
+
+canvas.addEventListener('touchend', () => {
+    isMeasuring = false;
+});
+
+// Mouse events
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    measureStart = { x };
+    measureEnd = { x };
+    isMeasuring = true;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if(!isMeasuring) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    measureEnd = { x };
+    drawRuler();
+});
+
+canvas.addEventListener('mouseup', () => {
+    isMeasuring = false;
+});
+
+function resetMeasure() {
+    measureStart = null;
+    measureEnd = null;
+    document.getElementById('measureDisplay').textContent = 'Toque e arraste para medir';
+    drawRuler();
+}
+
+function calibrate() {
+    // Calibração simples: medir 10cm na tela e ajustar DPI
+    const input = prompt('Meça 10cm na tela com uma régua física. Digite quantos cm seu dedo percorreu na régua Matrix:\n\n(Se a régua Matrix mostra 10cm mas a física mostra 8cm, digite 8)');
+    if(input) {
+        const realCm = parseFloat(input);
+        if(realCm > 0) {
+            const currentPx = 10 * getPixelsPerUnit();
+            dpi = (currentPx / realCm) * 2.54;
+            drawRuler();
+            document.getElementById('measureDisplay').textContent = '✅ Calibrado!';
+        }
+    }
+}
+
+drawRuler();
+</script>
+</body>
+</html>

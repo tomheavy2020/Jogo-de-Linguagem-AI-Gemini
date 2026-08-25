@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matrix Brain Games</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: #050505; color: #00ff00; font-family: 'Courier New', monospace;
+            margin: 0; padding: 0; display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.9); border-bottom: 2px solid #00ffff;
+            padding: 15px; display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0; box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+        .header h1 { font-size: 18px; text-shadow: 0 0 10px #00ffff; display: flex; align-items: center; gap: 10px; }
+        .header button {
+            background: transparent; border: 1px solid #ff0000; color: #ff0000;
+            padding: 5px 12px; border-radius: 5px; font-family: inherit; cursor: pointer;
+        }
+
+        .game-selector {
+            display: flex; padding: 15px; gap: 10px; flex-shrink: 0;
+            overflow-x: auto; border-bottom: 1px solid #00ff00;
+        }
+        .game-tab {
+            padding: 8px 20px; border: 1px solid #00ff00; border-radius: 20px;
+            background: transparent; color: #00ff00; cursor: pointer; white-space: nowrap;
+            font-family: inherit; font-weight: bold; transition: 0.2s;
+        }
+        .game-tab.active { background: #00ff00; color: #000; box-shadow: 0 0 15px #00ff00; }
+
+        .game-container {
+            flex: 1; overflow-y: auto; padding: 15px; display: flex;
+            justify-content: center; align-items: flex-start;
+        }
+        .game-panel { display: none; width: 100%; max-width: 450px; flex-direction: column; align-items: center; gap: 15px; }
+        .game-panel.active { display: flex; }
+
+        .game-title { font-size: 20px; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+
+        /* 🔥 ESTILOS DO SUDOKU 4X4 */
+        .sudoku-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; width: 100%; max-width: 300px; background: #00ff00; padding: 2px; }
+        .sudoku-cell {
+            background: #0a0a0a; color: #00ff00; aspect-ratio: 1;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; font-weight: bold; font-family: inherit;
+            text-align: center; border: none; outline: none;
+        }
+        .sudoku-cell:focus { box-shadow: inset 0 0 10px rgba(0,255,0,0.3); }
+        .sudoku-cell.fixed { color: #fff; background: #111; }
+
+        /* 🔥 ESTILOS DO QIMODOKU (Lógica de Cores) */
+        .qimo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; width: 100%; max-width: 300px; border: 2px solid #00ff00; }
+        .qimo-cell { aspect-ratio: 1; display: flex; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; cursor: pointer; }
+        .qimo-cell.empty { background: #1a1a1a; color: #fff; }
+        .qimo-cell.color-1 { background: #ff69b4; color: #000; } /* Rosa */
+        .qimo-cell.color-2 { background: #00ffff; color: #000; } /* Ciano */
+        .qimo-cell.color-3 { background: #ffaa00; color: #000; } /* Laranja */
+        .qimo-cell.color-4 { background: #00ff00; color: #000; } /* Verde */
+
+        /* 🔥 ESTILOS DO QUIZ */
+        .quiz-box { width: 100%; max-width: 350px; border: 1px solid #00ff00; border-radius: 10px; padding: 20px; background: rgba(0,255,0,0.03); }
+        .quiz-question { font-size: 16px; color: #fff; margin-bottom: 15px; text-align: center; }
+        .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+        .quiz-btn { padding: 12px; border: 1px solid #00ff00; border-radius: 8px; background: transparent; color: #00ff00; font-family: inherit; cursor: pointer; transition: 0.2s; }
+        .quiz-btn:active { background: #00ff00; color: #000; }
+        .quiz-btn.correct { background: #00ff00; color: #000; box-shadow: 0 0 15px #00ff00; }
+        .quiz-btn.wrong { background: #ff0000; color: #fff; border-color: #ff0000; }
+        .quiz-result { margin-top: 15px; font-size: 14px; text-align: center; }
+
+        /* 🔥 PAINEL DE PONTOS DO QUIZ */
+        .quiz-stats {
+            width: 100%; max-width: 350px;
+            display: flex; justify-content: space-between;
+            background: rgba(0,255,0,0.05); border: 1px solid #00ff00;
+            border-radius: 10px; padding: 10px 15px;
+            font-size: 14px; font-weight: bold;
+        }
+        .quiz-stats .stat-hit { color: #00ff00; }
+        .quiz-stats .stat-miss { color: #ff0000; }
+        .quiz-stats .stat-record { color: #ffd700; }
+
+        /* 🔥 BOTÃO RESET */
+        .reset-btn { padding: 10px 25px; border: 1px solid #00ff00; border-radius: 20px; background: transparent; color: #00ff00; font-family: inherit; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .reset-btn:active { background: #00ff00; color: #000; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><span style="color: #00ffff;">🧠</span> MATRIX BRAIN GAMES</h1>
+        <button onclick="window.location.href='/premium.html'">✕ Fechar</button>
+    </div>
+
+    <div class="game-selector">
+        <button class="game-tab active" onclick="switchGame('sudoku')">🧩 Sudoku</button>
+        <button class="game-tab" onclick="switchGame('qimo')">🎨 Qimodoku</button>
+        <button class="game-tab" onclick="switchGame('quiz')">❓ Quiz</button>
+    </div>
+
+    <div class="game-container">
+
+        <!-- 🧩 SUDOKU 4x4 -->
+        <div id="game-sudoku" class="game-panel active">
+            <div class="game-title">🧩 SUDOKU MATRIX</div>
+            <div class="sudoku-grid" id="sudokuGrid"></div>
+            <button class="reset-btn" onclick="generateSudoku()">🔄 Nova Partida</button>
+        </div>
+
+        <!-- 🎨 QIMODOKU -->
+        <div id="game-qimo" class="game-panel">
+            <div class="game-title">🎨 QIMODOKU (Lógica)</div>
+            <p style="color:#aaa; font-size:12px; text-align:center;">Cada linha e coluna deve ter 1 de cada cor.</p>
+            <div class="qimo-grid" id="qimoGrid"></div>
+            <button class="reset-btn" onclick="generateQimo()">🔄 Nova Partida</button>
+        </div>
+
+        <!-- ❓ QUIZ CIBERNÉTICO COM PONTUAÇÃO -->
+        <div id="game-quiz" class="game-panel">
+            <div class="game-title">❓ QUIZ CIBERNÉTICO</div>
+
+            <!-- 🔥 PLACAR DE PONTOS -->
+            <div class="quiz-stats">
+                <span class="stat-hit">✔️ Acertos: <span id="quizHits">0</span></span>
+                <span class="stat-miss">✖️ Erros: <span id="quizMisses">0</span></span>
+                <span class="stat-record">🏆 Recorde: <span id="quizRecord">0</span></span>
+            </div>
+
+            <div class="quiz-box">
+                <div class="quiz-question" id="quizQuestion">Carregando pergunta...</div>
+                <div class="quiz-options" id="quizOptions"></div>
+                <div class="quiz-result" id="quizResult"></div>
+            </div>
+            <button class="reset-btn" onclick="loadQuiz()">🔄 Nova Pergunta</button>
+        </div>
+
+    </div>
+
+    <script src="/game-points.js"></script>
+<script>
+        // 🔥 TROCA DE ABAS
+        function switchGame(gameId) {
+            document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.game-tab[onclick="switchGame('${gameId}')"]`).classList.add('active');
+            document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('game-' + gameId).classList.add('active');
+
+            if(gameId === 'sudoku') generateSudoku();
+            if(gameId === 'qimo') generateQimo();
+            if(gameId === 'quiz') loadQuiz();
+        }
+
+        // ==========================================
+        // 🔥 JOGO 1: SUDOKU 4X4 (COM VALIDAÇÃO)
+        // ==========================================
+        function generateSudoku() {
+            const grid = document.getElementById('sudokuGrid');
+            grid.innerHTML = '';
+            const base = [
+                [1,2,3,4],
+                [3,4,1,2],
+                [2,1,4,3],
+                [4,3,2,1]
+            ];
+            for(let r=0; r<4; r++) {
+                for(let c=0; c<4; c++) {
+                    const cell = document.createElement('input');
+                    cell.className = 'sudoku-cell';
+                    cell.type = 'text';
+                    cell.maxLength = 1;
+
+                    if(Math.random() > 0.5) {
+                        cell.value = base[r][c];
+                        cell.classList.add('fixed');
+                        cell.readOnly = true;
+                    } else {
+                        cell.dataset.solution = base[r][c];
+                        cell.dataset.row = r;
+                        cell.dataset.col = c;
+                        // Evento para verificar se o usuário acertou
+                        cell.addEventListener('input', function() {
+                            if(this.value === this.dataset.solution) {
+                                this.style.color = '#00ff00';
+                                this.style.fontWeight = 'bold';
+                            } else if(this.value !== '') {
+                                this.style.color = '#ff0000';
+                            } else {
+                                this.style.color = '#00ff00';
+                            }
+                        });
+                    }
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // ==========================================
+        // 🔥 JOGO 2: QIMODOKU (Lógica de Cores)
+        // ==========================================
+        function generateQimo() {
+            const grid = document.getElementById('qimoGrid');
+            grid.innerHTML = '';
+            const colors = ['color-1', 'color-2', 'color-3', 'color-4'];
+            let shuffled = [...colors].sort(() => Math.random() - 0.5);
+
+            for(let i=0; i<4; i++) {
+                const cell = document.createElement('div');
+                if(i === 0) {
+                    cell.className = 'qimo-cell empty';
+                    cell.innerText = '?';
+                    cell.dataset.color = shuffled[i];
+                    cell.onclick = function() {
+                        const colorsCycle = ['color-1', 'color-2', 'color-3', 'color-4'];
+                        let currentIdx = colorsCycle.indexOf(this.className.split(' ')[1] || 'color-1');
+                        // Se for empty, começa na primeira cor
+                        if(this.classList.contains('empty')) {
+                            this.classList.remove('empty');
+                            this.innerText = '';
+                            this.className = `qimo-cell ${colorsCycle[0]}`;
+                        } else {
+                            this.className = `qimo-cell ${colorsCycle[(currentIdx+1) % 4]}`;
+                        }
+                        checkQimoWin();
+                    };
+                } else {
+                    cell.className = `qimo-cell ${shuffled[i]}`;
+                }
+                grid.appendChild(cell);
+            }
+        }
+
+        function checkQimoWin() {
+            const cells = document.querySelectorAll('#qimoGrid .qimo-cell');
+            let colors = new Set();
+            cells.forEach(c => {
+                if(c.classList.length > 1) colors.add(c.classList[1]);
+            });
+            if(colors.size === 4) {
+                // Troca o alert() por um efeito visual no jogo
+                document.querySelector('.game-title').innerText = "🎉 VENCEU! Parabéns!";
+                setTimeout(() => {
+                    document.querySelector('.game-title').innerText = "🎨 QIMODOKU (Lógica)";
+                    generateQimo();
+                }, 2000);
+            }
+        }
+
+        // ==========================================
+        // 🔥 JOGO 3: QUIZ COM SISTEMA DE PONTOS PERSISTENTE
+        // ==========================================
+        const quizData = [
+            {
+                question: "Qual a linguagem de programação mais usada para criar o front-end de sites?",
+                options: ["Python", "JavaScript", "C++", "Java"],
+                correct: 1
+            },
+            {
+                question: "O que significa a sigla 'SQL'?",
+                options: ["Structured Query Language", "Standard Question Logic", "System Quick Load", "Simple Query List"],
+                correct: 0
+            },
+            {
+                question: "Qual desses é um comando OSINT válido?",
+                options: ["whois", "ping", "mkdir", "cd"],
+                correct: 0
+            },
+            {
+                question: "O que é um Firewall?",
+                options: ["Um sistema de refrigeração", "Uma barreira de segurança de rede", "Um tipo de processador", "Um navegador web"],
+                correct: 1
+            }
+        ];
+
+        // 🔥 VARIÁVEIS DE PONTUAÇÃO
+        let hits = 0;
+        let misses = 0;
+        let currentRecord = 0;
+
+        function loadQuiz() {
+            const questionEl = document.getElementById('quizQuestion');
+            const optionsEl = document.getElementById('quizOptions');
+            const resultEl = document.getElementById('quizResult');
+            const hitsSpan = document.getElementById('quizHits');
+            const missesSpan = document.getElementById('quizMisses');
+            const recordSpan = document.getElementById('quizRecord');
+
+            // Carrega recorde do localStorage
+            const savedRecord = localStorage.getItem('matrixQuizRecord');
+            if(savedRecord) {
+                currentRecord = parseInt(savedRecord);
+                recordSpan.innerText = currentRecord;
+            }
+
+            // Atualiza o placar na tela
+            hitsSpan.innerText = hits;
+            missesSpan.innerText = misses;
+            resultEl.innerText = '';
+
+            const q = quizData[Math.floor(Math.random() * quizData.length)];
+            questionEl.innerText = q.question;
+            optionsEl.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-btn';
+                btn.innerText = opt;
+                btn.onclick = function() {
+                    document.querySelectorAll('.quiz-btn').forEach(b => b.disabled = true);
+                    if(index === q.correct) {
+                        this.classList.add('correct');
+                        resultEl.innerText = "✅ Correto! Continue assim.";
+                        resultEl.style.color = "#00ff00";
+                        hits++; // Aumenta acertos
+                        hitsSpan.innerText = hits;
+
+                        // Verifica e salva novo recorde
+                        if(hits > currentRecord) {
+                            currentRecord = hits;
+                            recordSpan.innerText = currentRecord;
+                            localStorage.setItem('matrixQuizRecord', currentRecord.toString());
+                            resultEl.innerText = "🏆 NOVO RECORDE! Você está arrasando!";
+                        }
+                    } else {
+                        this.classList.add('wrong');
+                        document.querySelectorAll('.quiz-btn')[q.correct].classList.add('correct');
+                        resultEl.innerText = "❌ Errado. A resposta certa estava em verde.";
+                        resultEl.style.color = "#ff0000";
+                        misses++; // Aumenta erros
+                        missesSpan.innerText = misses;
+
+                        // Se errar, zera a sequência de acertos
+                        hits = 0;
+                        hitsSpan.innerText = hits;
+                        resultEl.innerText += " Sequência de acertos reiniciada.";
+                    }
+                };
+                optionsEl.appendChild(btn);
+            });
+        }
+
+        // 🔥 INICIALIZA O SUDOKU NA PRIMEIRA CARGA
+        generateSudoku();
+    </script>
+</body>
+</html>

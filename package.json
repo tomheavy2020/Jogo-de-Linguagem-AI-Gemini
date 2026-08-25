@@ -1,0 +1,17 @@
+{
+  "name": "matrix-os",
+  "version": "3.1.1",
+  "description": "Matrix OS - Game Hub",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "compression": "^1.8.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.2.0",
+    "node-fetch": "^2.7.0",
+    "ws": "^8.16.0"
+  }
+}

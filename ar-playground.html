@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matrix AR Playground</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #050505; color: #00ff00; font-family: 'Courier New', monospace; margin: 0; padding: 0; overflow: hidden; height: 100vh; width: 100vw; }
+
+        /* 🔥 CÂMERA */
+        #arCamera {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: 0; background: #000;
+        }
+
+        /* 🔥 HUD */
+        .ar-hud {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+            pointer-events: none;
+        }
+
+        .header {
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 20;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #ffaa00; pointer-events: auto;
+        }
+        .header h1 { font-size: 18px; color: #ffaa00; text-shadow: 0 0 10px #ffaa00; display: flex; align-items: center; gap: 10px; }
+        .header button {
+            background: transparent; border: 1px solid #ff0000; color: #ff0000;
+            padding: 5px 15px; border-radius: 5px; cursor: pointer; font-family: inherit; pointer-events: auto;
+        }
+
+        /* 🔥 MENU DE OBJETOS AR */
+        .ar-menu {
+            position: absolute; bottom: 30px; left: 0; width: 100%; z-index: 20;
+            display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 0 15px;
+            pointer-events: auto;
+        }
+        .ar-btn {
+            padding: 10px 18px; border: 2px solid #00ffff; border-radius: 30px;
+            background: rgba(0,0,0,0.7); color: #00ffff; font-family: inherit; font-weight: bold;
+            backdrop-filter: blur(4px); cursor: pointer; transition: 0.2s; font-size: 12px;
+        }
+        .ar-btn:active, .ar-btn.active { background: #00ffff; color: #000; box-shadow: 0 0 20px #00ffff; }
+
+        .ar-btn.dino { border-color: #ffaa00; color: #ffaa00; }
+        .ar-btn.dino:active, .ar-btn.dino.active { background: #ffaa00; color: #000; box-shadow: 0 0 20px #ffaa00; }
+        .ar-btn.portal { border-color: #ff00ff; color: #ff00ff; }
+        .ar-btn.portal:active, .ar-btn.portal.active { background: #ff00ff; color: #000; box-shadow: 0 0 20px #ff00ff; }
+
+        /* 🔥 OBJETOS AR FLUTUANTES */
+        .ar-object {
+            position: absolute;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease;
+            z-index: 5;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
+        }
+        .ar-object.emoji { font-size: 80px; }
+        .ar-object.hidden { opacity: 0; }
+
+        .ar-info {
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            z-index: 20; background: rgba(0,0,0,0.7); border: 1px solid #00ffff;
+            padding: 8px 20px; border-radius: 15px; text-align: center; color: #fff;
+            backdrop-filter: blur(4px); font-size: 12px; pointer-events: none;
+        }
+
+        /* 🔥 ANIMAÇÃO DO PORTAL */
+        @keyframes spinPortal { from { transform: translate(-50%, -50%) rotate(0deg) scale(1); } to { transform: translate(-50%, -50%) rotate(360deg) scale(1); } }
+        @keyframes floatDino { 0% { transform: translate(-50%, -50%) translateY(0px); } 50% { transform: translate(-50%, -50%) translateY(-20px); } 100% { transform: translate(-50%, -50%) translateY(0px); } }
+
+        .portal-anim { animation: spinPortal 4s linear infinite; font-size: 100px; }
+        .dino-anim { animation: floatDino 2s ease-in-out infinite; }
+
+        @media (max-width: 600px) {
+            .ar-btn { font-size: 10px; padding: 8px 12px; }
+            .ar-object.emoji { font-size: 60px; }
+        }
+    </style>
+</head>
+<body>
+
+    <video id="arCamera" autoplay playsinline></video>
+
+    <div class="header">
+        <h1>🌀 MATRIX AR PLAYGROUND</h1>
+        <button onclick="window.location.href='/premium.html'">✕ Fechar</button>
+    </div>
+
+    <div class="ar-info" id="arInfo">
+        📸 Toque no chão (na tela) para colocar o objeto!<br>
+        <span id="arStatus" style="color:#00ffff;">Selecione um item abaixo</span>
+    </div>
+
+    <div class="ar-hud">
+        <!-- Objetos AR serão inseridos aqui via JavaScript -->
+        <div id="arObjectsContainer"></div>
+    </div>
+
+    <div class="ar-menu">
+        <button class="ar-btn" onclick="selectARObject('dino', this)">🦕 T-Rex</button>
+        <button class="ar-btn" onclick="selectARObject('tree', this)">🌳 Árvore Mágica</button>
+        <button class="ar-btn portal" onclick="selectARObject('portal', this)">🌀 Portal Dimensional</button>
+        <button class="ar-btn" onclick="selectARObject('clear', this)">🗑️ Limpar Tudo</button>
+    </div>
+
+    <script>
+        // 🔥 CONFIGURAÇÃO
+        const video = document.getElementById('arCamera');
+        const objectsContainer = document.getElementById('arObjectsContainer');
+        const arStatus = document.getElementById('arStatus');
+
+        let selectedObjectType = null;
+        let objectCount = 0;
+        let cameraReady = false;
+
+        // 🔥 1. LIGAR A CÂMARA
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                video.srcObject = stream;
+                await video.play();
+                cameraReady = true;
+                arStatus.innerText = "📸 Câmera pronta! Toque na tela.";
+            } catch (err) {
+                alert("Permita o acesso à câmera para usar a Realidade Aumentada.");
+            }
+        }
+
+        // 🔥 2. SELECIONAR OBJETO
+        window.selectARObject = function(type, btn) {
+            document.querySelectorAll('.ar-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+
+            if(type === 'clear') {
+                objectsContainer.innerHTML = '';
+                objectCount = 0;
+                arStatus.innerText = "🗑️ Mundo limpo! Selecione um novo item.";
+                return;
+            }
+
+            selectedObjectType = type;
+            const names = { dino: '🦕 T-Rex', tree: '🌳 Árvore', portal: '🌀 Portal' };
+            arStatus.innerText = `✅ ${names[type]} selecionado! Toque no chão para posicionar.`;
+        };
+
+        // 🔥 3. POSICIONAR OBJETO NO CHÃO (AO TOCAR)
+        document.addEventListener('click', (e) => {
+            if (!cameraReady || !selectedObjectType || selectedObjectType === 'clear') return;
+
+            // Pega a posição do toque/clique na tela
+            const x = e.clientX;
+            const y = e.clientY;
+
+            // Cria o elemento visual
+            const obj = document.createElement('div');
+            obj.className = 'ar-object emoji';
+
+            // Define o ícone e a animação baseado no tipo
+            if (selectedObjectType === 'dino') {
+                obj.innerText = '🦕';
+                obj.classList.add('dino-anim');
+                obj.style.fontSize = '80px';
+            } else if (selectedObjectType === 'tree') {
+                obj.innerText = '🌳';
+                obj.style.filter = 'drop-shadow(0 0 30px #00ff00)';
+                obj.style.fontSize = '100px';
+            } else if (selectedObjectType === 'portal') {
+                obj.innerText = '🌀';
+                obj.classList.add('portal-anim');
+                obj.style.fontSize = '120px';
+                obj.style.filter = 'drop-shadow(0 0 40px #ff00ff)';
+            }
+
+            // Posiciona na tela (Simulação de Âncora AR)
+            obj.style.left = x + 'px';
+            obj.style.top = y + 'px';
+
+            objectsContainer.appendChild(obj);
+            objectCount++;
+            arStatus.innerText = `✨ Objeto colocado! (Total: ${objectCount})`;
+        });
+
+        // 🔥 4. INICIAR TUDO
+        window.addEventListener('load', startCamera);
+
+    </script>
+</body>
+</html>

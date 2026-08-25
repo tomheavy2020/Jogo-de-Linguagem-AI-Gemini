@@ -1,0 +1,66 @@
+.sat-ar-stage {
+  position: relative; width: 100%; height: 100vh; overflow: hidden; background: #000;
+}
+.sat-ar-header {
+  position: absolute; top: 0; left: 0; width: 100%; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 15px; background: rgba(0,0,0,0.7); border-bottom: 1px solid #00ffff;
+}
+.sat-ar-header span { color: #00ffff; font-weight: bold; }
+.sat-back-btn {
+  background: transparent; border: 1px solid #ff0000; color: #ff0000;
+  padding: 4px 12px; border-radius: 15px; font-family: inherit; cursor: pointer;
+}
+
+#ar-camera {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;
+}
+
+.ar-hud {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none;
+}
+.ar-target {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 50px; color: #00ffff; text-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff;
+  opacity: 0; transition: opacity 0.5s;
+}
+.ar-target.visible { opacity: 1; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+
+.ar-compass {
+  position: absolute; bottom: 160px; right: 20px; width: 80px; height: 80px;
+  border-radius: 50%; border: 2px solid #00ffff; background: rgba(0,0,0,0.6);
+  display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px #00ffff;
+}
+.compass-needle {
+  position: absolute; width: 4px; height: 35px; background: #ff3333;
+  transform-origin: bottom center; bottom: 50%; box-shadow: 0 0 10px #ff3333;
+  transition: transform 0.3s ease;
+}
+
+.sat-ar-info {
+  position: absolute; bottom: 100px; left: 0; width: 100%; z-index: 10;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 15px;
+}
+.sat-info-card {
+  background: rgba(0,0,0,0.7); border: 1px solid #00ffff; border-radius: 8px;
+  padding: 8px; text-align: center; backdrop-filter: blur(4px);
+}
+.sat-info-card span { display: block; }
+.sat-info-card span:first-child { color: #888; font-size: 10px; text-transform: uppercase; }
+.sat-info-card span:last-child { color: #fff; font-size: 14px; font-weight: bold; }
+
+.sat-ar-controls {
+  position: absolute; bottom: 20px; left: 0; width: 100%; z-index: 10;
+  display: flex; gap: 10px; padding: 0 15px;
+}
+.sat-ar-select {
+  flex: 1; padding: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00ffff;
+  border-radius: 8px; color: #fff; font-family: inherit; backdrop-filter: blur(4px);
+}
+.sat-ar-btn {
+  padding: 10px 20px; border: 1px solid #00ffff; background: rgba(0,0,0,0.8);
+  color: #00ffff; border-radius: 8px; cursor: pointer; font-family: inherit; backdrop-filter: blur(4px);
+  transition: 0.2s;
+}
+.sat-ar-btn:active { background: #00ffff; color: #000; }

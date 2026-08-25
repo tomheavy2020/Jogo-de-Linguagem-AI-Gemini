@@ -1,0 +1,8 @@
+{
+  "name": "Matrix OS",
+  "short_name": "MatrixOS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#00ff41"
+}

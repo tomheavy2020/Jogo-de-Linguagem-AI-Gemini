@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX LANTERNA REAL</title>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-bright: #7dffb0;
+            --neon-cyan: #00f0ff;
+            --neon-red: #ff3b3b;
+            --neon-gold: #ffb000;
+            --bg: #000;
+            --panel: rgba(0, 10, 0, 0.9);
+            --border: rgba(0, 255, 65, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: radial-gradient(ellipse at 50% 30%, #0a1a0a 0%, #000 70%);
+            color: var(--neon); font-family: 'Courier New', monospace;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: manipulation;
+        }
+
+        .flashlight-container {
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100dvw;
+            max-width: 500px; margin: 0 auto;
+            padding: 16px; gap: 10px;
+        }
+
+        /* Header */
+        .flashlight-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 14px; background: var(--panel);
+            flex-shrink: 0;
+            box-shadow: 0 0 20px rgba(0,255,65,0.15);
+        }
+        .flashlight-title {
+            font-size: 13px; font-weight: bold; letter-spacing: 2px;
+            text-shadow: 0 0 15px var(--neon);
+        }
+        .flashlight-status {
+            font-size: 8px; color: var(--neon-cyan);
+            display: flex; align-items: center; gap: 4px;
+        }
+        .flashlight-status .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--neon); animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .flashlight-close {
+            background: transparent; border: 1px solid var(--neon-red);
+            color: var(--neon-red); padding: 4px 12px; border-radius: 8px;
+            cursor: pointer; font-family: inherit; font-size: 10px;
+        }
+
+        /* Área central - botão principal */
+        .flashlight-main {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 20px;
+        }
+
+        /* Círculo da lanterna */
+        .torch-circle {
+            width: 160px; height: 160px; border-radius: 50%;
+            background: rgba(0, 20, 0, 0.5);
+            border: 3px solid rgba(0, 255, 65, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .torch-circle.on {
+            background: radial-gradient(circle, #7dffb0 0%, #00ff41 40%, #00b32d 100%);
+            border-color: var(--neon-bright);
+            box-shadow: 0 0 50px rgba(0,255,65,0.8), 0 0 100px rgba(0,255,65,0.4), 0 0 150px rgba(0,255,65,0.2);
+            animation: torchGlow 2s ease-in-out infinite;
+        }
+        @keyframes torchGlow {
+            0%,100% { box-shadow: 0 0 50px rgba(0,255,65,0.8), 0 0 100px rgba(0,255,65,0.4); }
+            50% { box-shadow: 0 0 70px rgba(0,255,65,1), 0 0 140px rgba(0,255,65,0.6); }
+        }
+        .torch-icon {
+            font-size: 60px; transition: all 0.3s;
+            filter: drop-shadow(0 0 10px rgba(0,255,65,0.3));
+        }
+        .torch-circle.on .torch-icon {
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.8));
+        }
+
+        /* Status text */
+        .status-text {
+            font-size: 14px; font-weight: bold; letter-spacing: 1px;
+            text-align: center; min-height: 20px;
+            text-shadow: 0 0 10px var(--neon);
+        }
+        .status-text.on { color: var(--neon-bright); }
+        .status-text.off { color: rgba(0,255,65,0.4); }
+        .status-text.unsupported { color: var(--neon-red); font-size: 11px; }
+
+        /* Controles */
+        .flashlight-controls {
+            display: flex; gap: 8px; flex-shrink: 0;
+        }
+        .flashlight-btn {
+            flex: 1; padding: 14px; border-radius: 14px;
+            background: var(--panel); border: 2px solid var(--border);
+            color: var(--neon); cursor: pointer; font-family: inherit;
+            font-size: 11px; font-weight: bold; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .flashlight-btn:active {
+            transform: scale(0.94);
+            background: rgba(0,255,65,0.15);
+        }
+        .flashlight-btn.active {
+            border-color: var(--neon);
+            box-shadow: 0 0 20px rgba(0,255,65,0.4);
+        }
+        .btn-icon { font-size: 24px; }
+
+        /* Indicador de suporte */
+        .support-indicator {
+            text-align: center; font-size: 8px;
+            color: rgba(0,255,65,0.4); flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="flashlight-container">
+        <div class="flashlight-header">
+            <span class="flashlight-title">🔦 MATRIX LANTERNA</span>
+            <span class="flashlight-status"><span class="dot"></span>TORCH API</span>
+            <button class="flashlight-close" onclick="cleanup();window.location.href='/tools.html'">✕</button>
+        </div>
+
+        <div class="flashlight-main">
+            <!-- Círculo principal -->
+            <div class="torch-circle" id="torchCircle" onclick="toggleTorch()">
+                <span class="torch-icon" id="torchIcon">💡</span>
+            </div>
+
+            <!-- Status -->
+            <div class="status-text off" id="statusText">LANTERNA DESLIGADA</div>
+
+            <!-- Controles -->
+            <div class="flashlight-controls">
+                <button class="flashlight-btn" id="sosBtn" onclick="toggleSOS()">
+                    <span class="btn-icon">🆘</span>
+                    <span>SOS</span>
+                </button>
+                <button class="flashlight-btn" id="musicBtn" onclick="toggleMusic()">
+                    <span class="btn-icon">🎵</span>
+                    <span>MÚSICA</span>
+                </button>
+                <button class="flashlight-btn" id="strobeBtn" onclick="toggleStrobe()">
+                    <span class="btn-icon">⚡</span>
+                    <span>STROBE</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="support-indicator" id="supportIndicator">
+            Verificando suporte à Torch API...
+        </div>
+    </div>
+
+<script>
+// ================= MATRIX LANTERNA REAL (TORCH API) =================
+
+// Variáveis globais
+let mediaStream = null;      // Stream da câmera
+let videoTrack = null;       // Track de vídeo (para controlar o torch)
+let isTorchOn = false;       // Estado atual da lanterna
+let isSOS = false;           // Modo SOS ativo
+let isStrobe = false;        // Modo Strobe ativo
+let sosInterval = null;      // Interval do SOS
+let strobeInterval = null;
+let musicMode = false;
+let audioContext = null;
+let audioAnalyser = null;
+let audioSource = null;
+let musicInterval = null;   // Interval do Strobe
+let torchSupported = false;  // Suporte à Torch API
+
+// Elementos DOM
+const torchCircle = document.getElementById('torchCircle');
+const torchIcon = document.getElementById('torchIcon');
+const statusText = document.getElementById('statusText');
+const sosBtn = document.getElementById('sosBtn');
+const strobeBtn = document.getElementById("strobeBtn");
+const musicBtn = document.getElementById("musicBtn");
+const supportIndicator = document.getElementById('supportIndicator');
+
+// ============ DETECTAR SUPORTE ============
+async function checkTorchSupport() {
+    try {
+        // Verificar se o navegador suporta getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showUnsupported('Seu navegador não suporta acesso à câmera. Use Chrome no Android.');
+            return false;
+        }
+
+        // Tentar acessar a câmera para verificar o torch
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false
+        });
+
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities ? track.getCapabilities() : null;
+
+        // Verificar se tem suporte a torch
+        if (capabilities && capabilities.torch) {
+            torchSupported = true;
+            supportIndicator.textContent = '✅ Torch API suportada - Chrome/Android';
+            supportIndicator.style.color = 'rgba(0,255,65,0.6)';
+
+            // Guardar o stream para uso posterior
+            mediaStream = stream;
+            videoTrack = track;
+            return true;
+        } else {
+            showUnsupported('Este navegador não suporta o flash real (Safari/iOS). Use Chrome no Android.');
+            // Parar o stream pois não vamos usar
+            track.stop();
+            return false;
+        }
+    } catch (err) {
+        showUnsupported('Erro ao acessar a câmera: ' + err.message);
+        return false;
+    }
+}
+
+function showUnsupported(msg) {
+    torchSupported = false;
+    statusText.textContent = 'RECURSO NÃO SUPORTADO';
+    statusText.className = 'status-text unsupported';
+    supportIndicator.textContent = '⚠️ ' + msg;
+    supportIndicator.style.color = 'rgba(255,59,59,0.6)';
+    torchCircle.style.opacity = '0.4';
+    torchCircle.style.pointerEvents = 'none';
+}
+
+// ============ ATIVAR/DESATIVAR TORCH ============
+async function setTorch(on) {
+    if (!torchSupported || !videoTrack) return false;
+
+    try {
+        await videoTrack.applyConstraints({
+            advanced: [{ torch: on }]
+        });
+        isTorchOn = on;
+        return true;
+    } catch (err) {
+        console.error('Erro ao controlar torch:', err);
+        return false;
+    }
+}
+
+// ============ BOTÃO PRINCIPAL ============
+async function toggleTorch() {
+    if (!torchSupported) return;
+
+    // Parar SOS e Strobe se estiverem ativos
+    stopSOS();
+    stopStrobe();
+
+    const success = await setTorch(!isTorchOn);
+    if (success) {
+        updateUI();
+    }
+}
+
+// ============ MODO SOS (Morse: ... --- ...) ============
+async function toggleSOS() {
+    if (!torchSupported) return;
+    if (!isTorchOn) {
+        // Ligar primeiro se estiver desligado
+        await setTorch(true);
+    }
+
+    stopStrobe();
+    isSOS = !isSOS;
+
+    if (isSOS) {
+        sosBtn.classList.add('active');
+        statusText.textContent = '🆘 MODO SOS ATIVO';
+        statusText.className = 'status-text on';
+
+        // Padrão SOS: 3 curtos, 3 longos, 3 curtos
+        const pattern = [
+            { on: true, duration: 200 }, { on: false, duration: 200 },
+            { on: true, duration: 200 }, { on: false, duration: 200 },
+            { on: true, duration: 200 }, { on: false, duration: 500 },
+            { on: true, duration: 600 }, { on: false, duration: 200 },
+            { on: true, duration: 600 }, { on: false, duration: 200 },
+            { on: true, duration: 600 }, { on: false, duration: 500 },
+            { on: true, duration: 200 }, { on: false, duration: 200 },
+            { on: true, duration: 200 }, { on: false, duration: 200 },
+            { on: true, duration: 200 }, { on: false, duration: 1000 }
+        ];
+
+        let index = 0;
+        sosInterval = setInterval(async () => {
+            if (index >= pattern.length) index = 0;
+            const step = pattern[index];
+            await setTorch(step.on);
+
+            // Atualizar visual
+            torchCircle.classList.toggle('on', step.on);
+            index++;
+        }, 100);
+    } else {
+        stopSOS();
+    }
+}
+
+function stopSOS() {
+    if (sosInterval) {
+        clearInterval(sosInterval);
+        sosInterval = null;
+    }
+    isSOS = false;
+    sosBtn.classList.remove('active');
+}
+
+// ============ MODO STROBE ============
+async function toggleStrobe() {
+    if (!torchSupported) return;
+    if (!isTorchOn) {
+        await setTorch(true);
+    }
+
+    stopSOS();
+    isStrobe = !isStrobe;
+
+    if (isStrobe) {
+        strobeBtn.classList.add('active');
+        statusText.textContent = '⚡ MODO STROBE ATIVO';
+        statusText.className = 'status-text on';
+
+        strobeInterval = setInterval(async () => {
+            const newState = !isTorchOn;
+            await setTorch(newState);
+            torchCircle.classList.toggle('on', newState);
+        }, 100); // 100ms = 10 piscadas por segundo
+    } else {
+        stopStrobe();
+    }
+}
+
+function stopStrobe() {
+    if (strobeInterval) {
+        clearInterval(strobeInterval);
+        strobeInterval = null;
+    }
+    isStrobe = false;
+    strobeBtn.classList.remove('active');
+}
+
+// ============ MODO MÚSICA ============
+async function toggleMusic() {
+    if (!torchSupported) return;
+    if (!isTorchOn) await setTorch(true);
+    stopSOS(); stopStrobe();
+    musicMode = !musicMode;
+    if (musicMode) {
+        musicBtn.classList.add("active");
+        statusText.textContent = "🎵 MODO MÚSICA - OUVINDO...";
+        statusText.className = "status-text on";
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            audioAnalyser = audioContext.createAnalyser();
+            audioAnalyser.fftSize = 256;
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioSource = audioContext.createMediaStreamSource(stream);
+            audioSource.connect(audioAnalyser);
+            const dataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+            musicInterval = setInterval(async () => {
+                if (!musicMode) return;
+                audioAnalyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                const average = sum / dataArray.length;
+                const beat = average > 50;
+                await setTorch(beat);
+                torchCircle.classList.toggle("on", beat);
+            }, 50);
+        } catch(err) {
+            statusText.textContent = "⚠️ Microfone negado";
+            musicMode = false;
+            musicBtn.classList.remove("active");
+        }
+    } else {
+        stopMusic();
+    }
+}
+function stopMusic() {
+    if (musicInterval) { clearInterval(musicInterval); musicInterval = null; }
+    if (audioSource) { audioSource.disconnect(); audioSource = null; }
+    if (audioContext) { audioContext.close(); audioContext = null; }
+    musicMode = false;
+    musicBtn.classList.remove("active");
+}
+// ============ ATUALIZAR UI ============
+function updateUI() {
+    if (isTorchOn) {
+        torchCircle.classList.add('on');
+        torchIcon.textContent = '🔆';
+        statusText.textContent = 'LANTERNA LIGADA';
+        statusText.className = 'status-text on';
+    } else {
+        torchCircle.classList.remove('on');
+        torchIcon.textContent = '💡';
+        statusText.textContent = 'LANTERNA DESLIGADA';
+        statusText.className = 'status-text off';
+    }
+}
+
+// ============ LIMPEZA ============
+function cleanup() {
+    stopMusic();
+    stopSOS();
+    stopStrobe();
+    if (isTorchOn && videoTrack) {
+        setTorch(false);
+    }
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+// Limpar ao sair da página
+window.addEventListener('beforeunload', cleanup);
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) cleanup();
+});
+
+// ============ INICIALIZAÇÃO ============
+checkTorchSupport();
+</script>
+</body>
+</html>

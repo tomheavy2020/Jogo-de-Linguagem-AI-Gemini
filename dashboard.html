@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⬡ MATRIX - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#000;color:#00ff41;font-family:'Rajdhani',sans-serif;min-height:100dvh;padding:20px}
+        .container{max-width:480px;margin:auto}
+        .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+        .header h1{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#00ff41;text-shadow:0 0 30px rgba(0,255,65,0.3)}
+        .header .back{color:rgba(0,255,65,0.4);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:12px}
+        .card{background:rgba(0,10,5,0.85);border:1px solid rgba(0,255,65,0.12);border-radius:16px;padding:16px 20px;margin-bottom:14px}
+        .card-title{font-size:11px;color:rgba(0,255,65,0.3);font-family:'Orbitron',sans-serif;letter-spacing:1px;margin-bottom:10px}
+        .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+        .stat-item{text-align:center}
+        .stat-item .number{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;color:#00ff41}
+        .stat-item .label{font-size:9px;color:rgba(255,255,255,0.3);font-family:'Share Tech Mono',monospace}
+        .badges-list{display:flex;gap:8px;flex-wrap:wrap}
+        .badge-item{width:36px;height:36px;border-radius:50%;background:rgba(0,255,65,0.06);border:1px solid rgba(0,255,65,0.1);display:flex;align-items:center;justify-content:center;font-size:16px}
+        .badge-item.locked{opacity:0.2;filter:grayscale(1)}
+        .recent-activity{font-size:12px;color:rgba(255,255,255,0.5);font-family:'Share Tech Mono',monospace}
+        .recent-activity .item{padding:6px 0;border-bottom:1px solid rgba(0,255,65,0.04);display:flex;justify-content:space-between}
+        .recent-activity .item .time{color:rgba(0,255,65,0.2);font-size:10px}
+        @media(max-width:400px){.stats-grid{grid-template-columns:1fr 1fr}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"><h1>⬡ DASHBOARD</h1><a href="/index.html" class="back">✕ FECHAR</a></div>
+    <div class="card">
+        <div class="card-title">⬡ ESTATÍSTICAS</div>
+        <div class="stats-grid">
+            <div class="stat-item"><div class="number" id="dashLevel">1</div><div class="label">NÍVEL</div></div>
+            <div class="stat-item"><div class="number" id="dashXP">0</div><div class="label">XP</div></div>
+            <div class="stat-item"><div class="number" id="dashBadges">0</div><div class="label">BADGES</div></div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">⬡ BADGES DESBLOQUEADAS</div>
+        <div class="badges-list" id="dashBadgesList">
+            <span class="badge-item locked">❓</span>
+            <span class="badge-item locked">❓</span>
+            <span class="badge-item locked">❓</span>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">⬡ ATIVIDADE RECENTE</div>
+        <div class="recent-activity" id="recentActivity">
+            <div class="item"><span>🔓 Bem-vindo ao MATRIX OS</span><span class="time">agora</span></div>
+        </div>
+    </div>
+</div>
+<script src="/xp-system.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const data = window.matrixXP?.getUserData() || { level: 1, xp: 0, badges: [] };
+    document.getElementById('dashLevel').textContent = data.level;
+    document.getElementById('dashXP').textContent = data.xp;
+    document.getElementById('dashBadges').textContent = data.badges.length;
+    // Badges
+    const list = document.getElementById('dashBadgesList');
+    if (data.badges.length > 0) {
+        const allBadges = window.XP_CONFIG?.badges || [];
+        list.innerHTML = allBadges.map(b => {
+            const unlocked = data.badges.includes(b.id);
+            return `<span class="badge-item${unlocked ? '' : ' locked'}">${unlocked ? b.icon : '❓'}</span>`;
+        }).join('');
+    }
+});
+</script>
+</body>
+</html>

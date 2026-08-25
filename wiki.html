@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix OS - Wiki Acadêmica</title>
+    <style>
+        body { background: #020503; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
+        .wiki-header { background: rgba(0,255,65,0.1); border: 1px solid #00ff41; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 20px rgba(0,255,65,0.3); }
+        .wiki-header h1 { margin: 0; font-size: 20px; text-shadow: 0 0 10px #00ff41; }
+        .wiki-header p { margin: 5px 0 0; font-size: 12px; color: #aaffdd; }
+        .wiki-upload { background: rgba(255,255,255,0.03); border: 1px solid rgba(0,255,65,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .wiki-upload label { display: block; font-size: 12px; margin-bottom: 5px; }
+        .wiki-upload input[type="file"] { color: #00ff41; margin-bottom: 10px; }
+        .wiki-btn { background: #00ff41; color: #000; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .doc-card { background: rgba(0,255,65,0.05); border: 1px solid rgba(0,255,65,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .doc-card span { font-size: 13px; }
+        .doc-download { background: transparent; border: 1px solid #00ff41; color: #00ff41; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+        .back-btn { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid #00ff41; color: #00ff41; padding: 8px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="window.location.href='index.html'">← VOLTAR</button>
+    <div class="wiki-header">
+        <h1>📚 WIKI ACADÊMICA</h1>
+        <p>Acesso restrito para <b style="color:#ffb000;">FORMANDOS</b> e <b style="color:#00ffff;">DOCENTES</b></p>
+    </div>
+    <div class="wiki-upload">
+        <label>📤 Publicar novo documento (PDF, DOCX, PPTX):</label>
+        <input type="file" id="docFile">
+        <br>
+        <button class="wiki-btn" onclick="uploadDocument()">PUBLICAR</button>
+    </div>
+    <div id="docsList">
+        <h3 style="color:#aaffdd;">Documentos disponíveis:</h3>
+        <div id="documentsContainer">
+            <p style="color:#888; font-size:12px;">Carregando documentos...</p>
+        </div>
+    </div>
+    <script>
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/api/documents');
+                const docs = await response.json();
+                const container = document.getElementById("documentsContainer");
+                if (docs.length === 0) { container.innerHTML = '<p style="color:#888;">Nenhum documento publicado ainda.</p>'; return; }
+                container.innerHTML = docs.map(doc => `<div class="doc-card"><span>📄 ${doc.originalname}</span><button class="doc-download" onclick="downloadDoc('${doc.filename}')">⬇ BAIXAR</button></div>`).join('');
+            } catch(e) { document.getElementById("documentsContainer").innerHTML = '<p style="color:#ff3b3b;">Erro ao carregar.</p>'; }
+        }
+        async function uploadDocument() {
+            const fileInput = document.getElementById("docFile");
+            if (!fileInput.files[0]) { alert("Selecione um arquivo primeiro!"); return; }
+            const formData = new FormData(); formData.append("file", fileInput.files[0]);
+            try {
+                const response = await fetch('/api/upload-doc', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) { alert("📄 Documento publicado!"); loadDocuments(); }
+                else { alert("❌ Erro: " + result.error); }
+            } catch(e) { alert("❌ Falha na conexão."); }
+        }
+        function downloadDoc(filename) { window.open(`/api/download-doc/${filename}`, '_blank'); }
+        loadDocuments();
+    </script>
+</body>
+</html>

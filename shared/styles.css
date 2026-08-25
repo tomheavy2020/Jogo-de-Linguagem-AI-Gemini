@@ -1,0 +1,44 @@
+:root {
+  --mos-bg: #050505;
+  --mos-panel: #0a0a0a;
+  --mos-green: #00ff41;
+  --mos-cyan: #00f0ff;
+  --mos-amber: #ffb000;
+  --mos-red: #ff3333;
+  --mos-border: rgba(0, 255, 65, 0.15);
+}
+
+body {
+  background: var(--mos-bg);
+  color: #e0e0e0;
+  font-family: 'Courier New', monospace;
+  margin: 0;
+}
+
+.mos-card {
+  background: var(--mos-panel);
+  border: 1px solid var(--mos-border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.mos-card:hover {
+  border-color: var(--accent, var(--mos-green));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent, var(--mos-green)) 25%, transparent),
+              inset 0 0 30px color-mix(in srgb, var(--accent, var(--mos-green)) 8%, transparent);
+  transform: translateY(-3px);
+}
+
+.mos-card h3 {
+  color: #fff;
+  margin: 10px 0 5px 0;
+}
+
+.mos-card p {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}

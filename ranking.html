@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX RANKING ULTRA</title>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-cyan: #00f0ff;
+            --neon-gold: #ffd700;
+            --neon-silver: #c0c0c0;
+            --neon-bronze: #cd7f32;
+            --neon-red: #ff3b3b;
+            --bg: #000;
+            --panel: rgba(0, 8, 0, 0.9);
+            --border: rgba(0, 255, 65, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: radial-gradient(ellipse at 50% 0%, #0a1a0a 0%, #000 100%);
+            color: var(--neon); font-family: 'Courier New', monospace;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .ranking-container {
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100dvw;
+            max-width: 500px; margin: 0 auto;
+            padding: 10px; gap: 8px;
+        }
+
+        /* Header */
+        .rank-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 12px; background: var(--panel);
+            flex-shrink: 0;
+        }
+        .rank-title {
+            font-size: 14px; font-weight: bold; letter-spacing: 2px;
+            text-shadow: 0 0 15px var(--neon-gold);
+            color: var(--neon-gold);
+        }
+        .rank-season {
+            font-size: 8px; color: var(--neon-cyan);
+        }
+        .rank-close {
+            background: transparent; border: 1px solid var(--neon-red);
+            color: var(--neon-red); padding: 4px 12px; border-radius: 8px;
+            cursor: pointer; font-family: inherit; font-size: 10px;
+        }
+
+        /* Pódio 3D */
+        .podium {
+            display: flex; justify-content: center; align-items: flex-end;
+            gap: 8px; padding: 12px 0; flex-shrink: 0;
+            position: relative;
+        }
+        .podium-spot {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px; cursor: pointer;
+            transition: all 0.3s;
+        }
+        .podium-spot:hover { transform: translateY(-5px); }
+        .podium-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: 2px solid; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: bold;
+            animation: avatarGlow 2s infinite;
+        }
+        @keyframes avatarGlow {
+            0%,100% { box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+            50% { box-shadow: 0 0 25px rgba(255,215,0,0.7); }
+        }
+        .podium-spot.first .podium-avatar {
+            width: 56px; height: 56px; font-size: 26px;
+            border-color: var(--neon-gold);
+            color: var(--neon-gold);
+        }
+        .podium-spot.second .podium-avatar {
+            border-color: var(--neon-silver);
+            color: var(--neon-silver);
+        }
+        .podium-spot.third .podium-avatar {
+            border-color: var(--neon-bronze);
+            color: var(--neon-bronze);
+        }
+        .podium-name { font-size: 9px; color: #fff; }
+        .podium-points { font-size: 11px; font-weight: bold; }
+        .podium-spot.first .podium-points { color: var(--neon-gold); }
+        .podium-spot.second .podium-points { color: var(--neon-silver); }
+        .podium-spot.third .podium-points { color: var(--neon-bronze); }
+
+        /* Filtros */
+        .rank-filters {
+            display: flex; gap: 5px; flex-shrink: 0;
+            overflow-x: auto; padding: 2px 0;
+        }
+        .filter-btn {
+            background: var(--panel); border: 1px solid var(--border);
+            color: var(--neon); padding: 6px 12px; border-radius: 16px;
+            cursor: pointer; font-family: inherit; font-size: 9px;
+            white-space: nowrap; transition: all 0.2s;
+        }
+        .filter-btn.active {
+            background: rgba(0,255,65,0.2);
+            border-color: var(--neon);
+            box-shadow: 0 0 12px rgba(0,255,65,0.3);
+        }
+
+        /* Lista de ranking */
+        .rank-list {
+            flex: 1; overflow-y: auto;
+            border: 1px solid var(--border); border-radius: 12px;
+            background: var(--panel);
+            scroll-behavior: smooth;
+        }
+        .rank-list::-webkit-scrollbar { width: 3px; }
+        .rank-list::-webkit-scrollbar-thumb { background: var(--neon); border-radius: 2px; }
+
+        .rank-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px; border-bottom: 1px solid rgba(0,255,65,0.08);
+            animation: slideIn 0.3s ease backwards;
+            transition: all 0.2s;
+        }
+        .rank-item:active { background: rgba(0,255,65,0.08); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-15px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .rank-item:nth-child(1) { animation-delay: 0.05s; }
+        .rank-item:nth-child(2) { animation-delay: 0.1s; }
+        .rank-item:nth-child(3) { animation-delay: 0.15s; }
+        .rank-item:nth-child(4) { animation-delay: 0.2s; }
+        .rank-item:nth-child(5) { animation-delay: 0.25s; }
+        .rank-item:nth-child(6) { animation-delay: 0.3s; }
+
+        .rank-pos {
+            width: 28px; text-align: center; font-weight: bold;
+            font-size: 12px; color: #888; flex-shrink: 0;
+        }
+        .rank-pos.top1 { color: var(--neon-gold); font-size: 16px; }
+        .rank-pos.top2 { color: var(--neon-silver); font-size: 14px; }
+        .rank-pos.top3 { color: var(--neon-bronze); font-size: 14px; }
+
+        .rank-avatar {
+            width: 30px; height: 30px; border-radius: 50%;
+            border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; flex-shrink: 0;
+        }
+        .rank-info { flex: 1; min-width: 0; }
+        .rank-name { font-size: 10px; color: #fff; }
+        .rank-badge {
+            display: inline-block; font-size: 6px; padding: 1px 4px;
+            border-radius: 4px; margin-left: 4px;
+            background: rgba(0,255,65,0.15); color: var(--neon-cyan);
+        }
+        .rank-points {
+            font-size: 11px; font-weight: bold;
+            color: var(--neon-gold); flex-shrink: 0;
+        }
+        .rank-wins {
+            font-size: 7px; color: rgba(0,255,65,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="ranking-container">
+        <div class="rank-header">
+            <div>
+                <span class="rank-title">🏆 MATRIX RANKING</span>
+                <div class="rank-season">TEMPORADA 2024.3</div>
+            </div>
+            <button class="rank-close" onclick="window.location.href='/index.html'">✕</button>
+        </div>
+
+        <!-- Pódio -->
+        <div class="podium" id="podium"></div>
+
+        <!-- Filtros -->
+        <div class="rank-filters">
+            <button class="filter-btn active" onclick="filterRanking('all', this)">🏆 GERAL</button>
+            <button class="filter-btn" onclick="filterRanking('chess', this)">♟️ XADREZ</button>
+            <button class="filter-btn" onclick="filterRanking('arena', this)">⚔️ ARENA</button>
+            <button class="filter-btn" onclick="filterRanking('nautical', this)">⛵ NÁUTICO</button>
+            <button class="filter-btn" onclick="filterRanking('runner', this)">🏃 RUNNER</button>
+        </div>
+
+        <!-- Lista -->
+        <div class="rank-list" id="rankList"></div>
+    </div>
+
+<script>
+// ================= MATRIX RANKING ULTRA =================
+let players = [];
+let currentFilter = 'all';
+
+async function loadRanking(game = 'all') {
+    try {
+        const response = await fetch('/api/ranking' + (game !== 'all' ? '?game=' + game : ''));
+        const data = await response.json();
+        players = data.map(p => ({
+            name: p.userId || p.name || 'Jogador',
+            points: p.points || 0,
+            wins: p.wins || 0,
+            badge: p.points > 9000 ? '🏆' : p.points > 5000 ? '⚡' : '🎮',
+            avatar: (p.userId || 'J')[0].toUpperCase()
+        }));
+        loadRanking('all');
+    } catch(e) {
+        console.log('Offline - usando dados locais');
+        players = JSON.parse(localStorage.getItem('matrixRanking') || '[]');
+        if (players.length === 0) {
+            players = [
+                { name: 'Neo', points: 9850, wins: 124, badge: '🏆', avatar: 'N' },
+                { name: 'Trinity', points: 9200, wins: 110, badge: '⚡', avatar: 'T' },
+                { name: 'Morpheus', points: 8750, wins: 98, badge: '🛡️', avatar: 'M' }
+            ];
+        }
+        renderPodium();
+        renderRankList();
+    }
+}
+
+function renderPodium() {
+        const podium = document.getElementById('podium');
+        if (!players.length) return;
+        const [first, second, third] = players;
+        podium.innerHTML = `
+            <div class="podium-spot second" onclick="showPlayer('${second.name}')">
+                <div class="podium-avatar">${second.avatar}</div>
+                <span class="podium-name">${second.name}</span>
+                <span class="podium-points">${second.points}</span>
+            </div>
+            <div class="podium-spot first" onclick="showPlayer('${first.name}')">
+                <div class="podium-avatar">${first.avatar}</div>
+                <span class="podium-name">${first.name}</span>
+                <span class="podium-points">${first.points}</span>
+            </div>
+            <div class="podium-spot third" onclick="showPlayer('${third.name}')">
+                <div class="podium-avatar">${third.avatar}</div>
+                <span class="podium-name">${third.name}</span>
+                <span class="podium-points">${third.points}</span>
+            </div>`;
+    }
+}
+
+function renderList() {
+    const list = document.getElementById('rankList');
+    list.innerHTML = players.map((p, i) => {
+        const posClass = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+
+        return `
+            <div class="rank-item" onclick="showPlayer('${p.name}')">
+                <span class="rank-pos ${posClass}">${medal}</span>
+                <div class="rank-avatar">${p.avatar}</div>
+                <div class="rank-info">
+                    <div class="rank-name">${p.name} <span class="rank-badge">${p.badge}</span></div>
+                    <div class="rank-wins">${p.wins} vitórias</div>
+                </div>
+                <span class="rank-points">${p.points.toLocaleString()}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function filterRanking(category, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showToast('🏆 Filtro: ' + category.toUpperCase());
+}
+
+function showPlayer(name) {
+    const player = players.find(p => p.name === name);
+    if(player) {
+        showToast(`${player.avatar} ${player.name}: ${player.points} pontos | ${player.wins} vitórias`);
+    }
+}
+
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);border:1px solid #ffd700;border-radius:10px;padding:8px 16px;font-size:11px;z-index:1000;color:#ffd700;';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
+
+renderPodium();
+renderList();
+</script>
+</body>
+</html>
