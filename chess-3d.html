@@ -470,7 +470,7 @@ const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
 
-const orbit = { radius: 14.5, theta: Math.PI/4, phi: 0.78, minPhi: 0.35, maxPhi: 1.35, minR: 5.5, maxR: 22.0 };
+const orbit = { radius: 17.0, theta: Math.PI/4, phi: 0.78, minPhi: 0.35, maxPhi: 1.35, minR: 5.5, maxR: 30.0 };
 
 function updateCamera() {
   const x = orbit.radius * Math.sin(orbit.phi) * Math.sin(orbit.theta);
@@ -1156,7 +1156,13 @@ function handleRemoteData(data) {
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h);
-  camera.aspect = w / h;
+  const aspect = w / h;
+  camera.aspect = aspect;
+  if (aspect < 1) {
+    camera.fov = Math.min(75, 45 / aspect);
+  } else {
+    camera.fov = 45;
+  }
   camera.updateProjectionMatrix();
 }
 
