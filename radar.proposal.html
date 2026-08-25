@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MATRIX OS // CAPTAIN FLIGHT RADAR</title>
+    <title>MATRIX OS // GLOBAL CAPTAIN FLIGHT RADAR</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,7 +14,7 @@
             --neon-green: #00ff55;
             --neon-cyan: #00f0ff;
             --neon-amber: #ffb700;
-            --glass-bg: rgba(3, 15, 10, 0.85);
+            --glass-bg: rgba(3, 15, 10, 0.88);
             --border-glow: rgba(0, 255, 85, 0.35);
         }
 
@@ -39,7 +39,6 @@
             background: #010604;
         }
 
-        /* Dark Aviation Tiles Overrides */
         .leaflet-container { background: #010604 !important; }
         .leaflet-popup-content-wrapper {
             background: rgba(2, 12, 8, 0.92) !important;
@@ -51,7 +50,6 @@
         }
         .leaflet-popup-tip { background: var(--neon-green) !important; }
 
-        /* CRT SCANLINES & HUD OVERLAY */
         .hud-scanlines {
             position: fixed;
             inset: 0;
@@ -62,7 +60,6 @@
             opacity: 0.6;
         }
 
-        /* COCKPIT TOP BAR */
         .top-bar {
             position: fixed;
             top: 12px;
@@ -130,7 +127,6 @@
 
         .close-btn:hover { background: #ff3333; color: #000; box-shadow: 0 0 15px #ff3333; }
 
-        /* COCKPIT FLIGHT INSTRUMENTS (HUD OVERLAY LEFT) */
         .cockpit-hud {
             position: fixed;
             top: 76px;
@@ -159,7 +155,6 @@
 
         .hud-metric .val { color: var(--neon-cyan); font-weight: bold; }
 
-        /* CAPTAIN FLIGHT INSPECTOR MODAL (BOTTOM SLIDE) */
         .flight-panel {
             position: fixed;
             bottom: 12px;
@@ -263,7 +258,6 @@
         .stat-box .v { font-size: 12px; color: #fff; font-weight: bold; }
         .stat-box .l { font-size: 8px; color: rgba(255, 255, 255, 0.5); }
 
-        /* STATUS BOTTOM FLOATING BAR */
         .bottom-status-bar {
             position: fixed;
             bottom: 12px;
@@ -295,7 +289,6 @@
 
         @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        /* AIRCRAFT MAP SVG ICON */
         .plane-marker {
             background: transparent;
             display: flex;
@@ -308,6 +301,21 @@
             width: 26px;
             height: 26px;
             filter: drop-shadow(0 0 6px rgba(0, 255, 85, 0.8));
+        }
+
+        /* Airport Marker Badge */
+        .airport-badge {
+            background: rgba(0, 240, 255, 0.9);
+            color: #000;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid #fff;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+            text-align: center;
+            white-space: nowrap;
         }
 
         @media (max-width: 600px) {
@@ -324,73 +332,73 @@
 <div id="radarMap"></div>
 <div class="hud-scanlines"></div>
 
-<!-- TOP COCKPIT NAVIGATION BAR -->
 <div class="top-bar">
     <div class="brand-title">
-        <span>✈</span> MATRIX RADAR CAPTAIN
+        <span>✈</span> MATRIX GLOBAL RADAR
     </div>
     <div class="search-box">
-        <input type="text" id="searchFlight" placeholder="Buscar Voo (ex: GOL)..." onkeyup="filterFlights()">
+        <input type="text" id="searchFlight" placeholder="Buscar Voo..." onkeyup="filterFlights()">
     </div>
     <button class="close-btn" onclick="window.location.href='/index.html'">✕ SAIR</button>
 </div>
 
-<!-- COCKPIT HUD LEFT INSTRUMENTS PANEL -->
 <div class="cockpit-hud">
-    <div class="hud-metric"><span>RADAR RANGE:</span> <span class="val">450 NM</span></div>
-    <div class="hud-metric"><span>MODE:</span> <span class="val">ADS-B LIVE</span></div>
+    <div class="hud-metric"><span>COVERAGE:</span> <span class="val">WORLDWIDE</span></div>
+    <div class="hud-metric"><span>MODE:</span> <span class="val">ADS-B GLOBAL</span></div>
     <div class="hud-metric"><span>TRAFFIC:</span> <span class="val" id="hudTrafficCount">0 ACFT</span></div>
     <div class="hud-metric"><span>FREQ:</span> <span class="val">121.50 MHz</span></div>
 </div>
 
-<!-- CAPTAIN FLIGHT INSPECTOR PANEL -->
 <div class="flight-panel" id="flightPanel">
     <div class="panel-header">
         <div class="flight-callsign">
             <span>✈</span> <span id="pCallsign">GLO1234</span>
         </div>
-        <div class="aircraft-model" id="pModel">BOEING 737-MAX8</div>
+        <div class="aircraft-model" id="pModel">BOEING 787 DREAMLINER</div>
         <button class="close-btn" style="padding: 2px 8px;" onclick="closePanel()">✕</button>
     </div>
 
     <div class="flight-route">
         <div class="airport">
             <span class="code" id="pOrigin">GRU</span>
-            <span class="city">SÃO PAULO</span>
+            <span class="city" id="pOriginCity">SÃO PAULO</span>
         </div>
         <div class="route-line"></div>
         <div class="airport">
-            <span class="code" id="pDest">GIG</span>
-            <span class="city">RIO JANEIRO</span>
+            <span class="code" id="pDest">JFK</span>
+            <span class="city" id="pDestCity">NEW YORK</span>
         </div>
     </div>
 
     <div class="flight-stats-grid">
-        <div class="stat-box"><div class="v" id="pAlt">35,000 FT</div><div class="l">ALTITUDE</div></div>
-        <div class="stat-box"><div class="v" id="pSpeed">460 KTS</div><div class="l">VELOCIDADE</div></div>
+        <div class="stat-box"><div class="v" id="pAlt">38,000 FT</div><div class="l">ALTITUDE</div></div>
+        <div class="stat-box"><div class="v" id="pSpeed">510 KTS</div><div class="l">VELOCIDADE</div></div>
         <div class="stat-box"><div class="v" id="pHeading">045°</div><div class="l">PROA (PRO)</div></div>
         <div class="stat-box"><div class="v" id="pSquawk">7000</div><div class="l">SQUAWK</div></div>
     </div>
 </div>
 
-<!-- BOTTOM FLOATING STATUS BAR -->
 <div class="bottom-status-bar" id="bottomStatus">
     <div class="blink-dot"></div>
-    <span id="statusCounter">Aguardando telemetria de voos...</span>
+    <span id="statusCounter">Aguardando telemetria global...</span>
 </div>
 
 <script>
-/* ════════════════════════════════════════════════════════════
-   CAPTAIN FLIGHT RADAR — REALTIME TELEMETRY ENGINE
-   ════════════════════════════════════════════════════════════ */
+// AUTO FULLSCREEN ON FIRST INTERACTION
+['click', 'touchstart'].forEach(eventType => {
+    document.addEventListener(eventType, function autoFS() {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) { elem.requestFullscreen().catch(() => {}); }
+        else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+    }, { once: true });
+});
 
 const map = L.map('radarMap', {
-    center: [-15.7801, -47.9292], // Brasil Center
-    zoom: 5,
+    center: [20.0, 0.0], // Global Center
+    zoom: 3,
     zoomControl: false
 });
 
-// CartoDB Dark Matter Aviation Base Map
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd',
     maxZoom: 18
@@ -399,11 +407,10 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
 let planeMarkers = {};
-let flightTrajectories = {};
+let activeRoutePolyline = null;
+let activeAirportMarkers = [];
 let currentSelectedIcao = null;
-let rawFlightData = [];
 
-/* Airplane SVG Icon Generator */
 function createPlaneSvg(color, heading) {
     return `<div class="plane-marker" style="transform: rotate(${heading}deg);">
         <svg viewBox="0 0 24 24" fill="${color}" stroke="#000" stroke-width="0.8">
@@ -412,145 +419,154 @@ function createPlaneSvg(color, heading) {
     </div>`;
 }
 
-/* Realistic Synthetic Flight Generator (Fallback) */
-const CITIES = [
-    { code: 'GRU', name: 'SÃO PAULO', lat: -23.4356, lng: -46.4731 },
-    { code: 'GIG', name: 'RIO JANEIRO', lat: -22.8089, lng: -43.2436 },
-    { code: 'BSB', name: 'BRASÍLIA', lat: -15.8697, lng: -47.9208 },
-    { code: 'SSA', name: 'SALVADOR', lat: -12.9086, lng: -38.3225 },
-    { code: 'CNF', name: 'BELO HORIZONTE', lat: -19.6244, lng: -43.9719 },
-    { code: 'POA', name: 'PORTO ALEGRE', lat: -29.9939, lng: -51.1711 },
-    { code: 'REC', name: 'RECIFE', lat: -8.1264, lng: -34.9228 }
+/* WORLDWIDE AIRPORTS LIST */
+const WORLD_AIRPORTS = [
+    { code: 'GRU', city: 'SÃO PAULO', lat: -23.4356, lng: -46.4731 },
+    { code: 'GIG', city: 'RIO JANEIRO', lat: -22.8089, lng: -43.2436 },
+    { code: 'BSB', city: 'BRASÍLIA', lat: -15.8697, lng: -47.9208 },
+    { code: 'JFK', city: 'NEW YORK', lat: 40.6413, lng: -73.7781 },
+    { code: 'LHR', city: 'LONDRES', lat: 51.4700, lng: -0.4543 },
+    { code: 'CDG', city: 'PARIS', lat: 49.0097, lng: 2.5479 },
+    { code: 'HND', city: 'TÓQUIO', lat: 35.5494, lng: 139.7798 },
+    { code: 'DXB', city: 'DUBAI', lat: 25.2532, lng: 55.3657 },
+    { code: 'SYD', city: 'SYDNEY', lat: -33.9399, lng: 151.1753 },
+    { code: 'FRA', city: 'FRANKFURT', lat: 50.0379, lng: 8.5622 },
+    { code: 'EZE', city: 'BUENOS AIRES', lat: -34.8222, lng: -58.5358 },
+    { code: 'MIA', city: 'MIAMI', lat: 25.7959, lng: -80.2870 }
 ];
 
-const MODELS = ['BOEING 737-800', 'AIRBUS A320neo', 'EMBRAER E195-E2', 'BOEING 787 DREAMLINER'];
+const MODELS = ['BOEING 787-9', 'AIRBUS A350-1000', 'BOEING 777-300ER', 'AIRBUS A330neo', 'EMBRAER E195-E2'];
 
-function generateSimulatedFlights() {
+function generateSimulatedWorldwideFlights() {
     const flights = [];
-    for (let i = 0; i < 16; i++) {
-        const orig = CITIES[i % CITIES.length];
-        const dest = CITIES[(i + 3) % CITIES.length];
-        const progress = (Date.now() / 1000 + i * 300) % 3600 / 3600;
+    for (let i = 0; i < 32; i++) {
+        const origIndex = i % WORLD_AIRPORTS.length;
+        const destIndex = (i + 5) % WORLD_AIRPORTS.length;
+        const orig = WORLD_AIRPORTS[origIndex];
+        const dest = WORLD_AIRPORTS[destIndex];
 
+        const progress = ((Date.now() / 1000 + i * 250) % 3600) / 3600;
         const lat = orig.lat + (dest.lat - orig.lat) * progress;
         const lng = orig.lng + (dest.lng - orig.lng) * progress;
-        const heading = Math.atan2(dest.lng - orig.lng, dest.lat - orig.lat) * (180 / Math.PI);
+        const heading = (Math.atan2(dest.lng - orig.lng, dest.lat - orig.lat) * (180 / Math.PI) + 360) % 360;
 
-        flights.push([
-            `SIM${100 + i}`,
-            `AZU${1000 + i}`,
-            'Brazil',
-            Math.floor(Date.now()/1000),
-            Math.floor(Date.now()/1000),
-            lng,
+        flights.push({
+            icao24: `WLD${100 + i}`,
+            callsign: `FLT${1000 + i}`,
             lat,
-            10500 + (i * 500),
-            false,
-            230 + (i * 10),
-            (heading + 360) % 360,
-            0,
-            null,
-            10500,
-            '7000',
-            false,
-            0,
-            orig.code,
-            dest.code,
-            MODELS[i % MODELS.length]
-        ]);
+            lng,
+            altitude: 10000 + (i * 300),
+            speed: 240 + (i * 5),
+            heading,
+            squawk: '7000',
+            orig,
+            dest,
+            model: MODELS[i % MODELS.length]
+        });
     }
     return flights;
 }
 
-/* Update Flights Telemetry on Map */
-function renderFlightData(states) {
-    rawFlightData = states;
+function renderFlightData(flights) {
     const activeIds = new Set();
     let count = 0;
 
-    states.forEach(state => {
-        const icao24 = state[0];
-        const callsign = state[1]?.trim() || `FLT-${icao24.slice(-4)}`;
-        const lng = state[5];
-        const lat = state[6];
-        const altitudeMs = state[7] || 9000;
-        const velocityMs = state[9] || 220;
-        const heading = state[10] || 0;
-        const origin = state[17] || 'GRU';
-        const dest = state[18] || 'BSB';
-        const model = state[19] || MODELS[Math.floor(Math.random() * MODELS.length)];
+    flights.forEach(f => {
+        activeIds.add(f.icao24);
+        count++;
 
-        if (lat && lng) {
-            activeIds.add(icao24);
-            count++;
-            const pos = [lat, lng];
-            const altFt = Math.round(altitudeMs * 3.28084);
-            const speedKts = Math.round(velocityMs * 1.94384);
+        const pos = [f.lat, f.lng];
+        const altFt = Math.round(f.altitude * 3.28084);
+        const speedKts = Math.round(f.speed * 1.94384);
 
-            const planeIcon = L.divIcon({
-                className: '',
-                html: createPlaneSvg('#00ff55', heading),
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
+        const planeIcon = L.divIcon({
+            className: '',
+            html: createPlaneSvg(currentSelectedIcao === f.icao24 ? '#00f0ff' : '#00ff55', f.heading),
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+        });
+
+        if (planeMarkers[f.icao24]) {
+            planeMarkers[f.icao24].setLatLng(pos);
+            planeMarkers[f.icao24].setIcon(planeIcon);
+        } else {
+            const marker = L.marker(pos, { icon: planeIcon }).addTo(map);
+            marker.on('click', () => {
+                selectFlight(f, altFt, speedKts);
             });
+            planeMarkers[f.icao24] = marker;
+        }
 
-            if (planeMarkers[icao24]) {
-                const marker = planeMarkers[icao24];
-                marker.setLatLng(pos);
-                marker.setIcon(planeIcon);
-
-                // Append point to flight trajectory polyline
-                if (flightTrajectories[icao24]) {
-                    flightTrajectories[icao24].addLatLng(pos);
-                }
-            } else {
-                const marker = L.marker(pos, { icon: planeIcon }).addTo(map);
-
-                // Create flight trajectory route line
-                const polyline = L.polyline([pos], {
-                    color: '#00f0ff',
-                    weight: 2,
-                    dashArray: '4, 6',
-                    opacity: 0.65
-                }).addTo(map);
-
-                flightTrajectories[icao24] = polyline;
-
-                marker.on('click', () => {
-                    selectFlight({ icao24, callsign, model, origin, dest, altFt, speedKts, heading, squawk: state[14] || '7000' });
-                });
-
-                planeMarkers[icao24] = marker;
-            }
+        // Update route polyline if selected
+        if (currentSelectedIcao === f.icao24 && activeRoutePolyline) {
+            drawFlightRoute(f.orig, [f.lat, f.lng], f.dest);
         }
     });
 
-    // Cleanup inactive aircraft
     for (const id in planeMarkers) {
         if (!activeIds.has(id)) {
             map.removeLayer(planeMarkers[id]);
-            if (flightTrajectories[id]) map.removeLayer(flightTrajectories[id]);
             delete planeMarkers[id];
-            delete flightTrajectories[id];
         }
     }
 
-    document.getElementById('statusCounter').innerText = `RADAR ATIVO: ${count} TRAFEGOS RASTREADOS`;
+    document.getElementById('statusCounter').innerText = `RADAR GLOBAL: ${count} TRAFEGOS INTERCONTINENTAIS ATIVOS`;
     document.getElementById('hudTrafficCount').innerText = `${count} ACFT`;
 }
 
-function selectFlight(f) {
+function drawFlightRoute(orig, currentPos, dest) {
+    if (activeRoutePolyline) map.removeLayer(activeRoutePolyline);
+    activeAirportMarkers.forEach(m => map.removeLayer(m));
+    activeAirportMarkers = [];
+
+    const routePoints = [
+        [orig.lat, orig.lng],
+        currentPos,
+        [dest.lat, dest.lng]
+    ];
+
+    activeRoutePolyline = L.polyline(routePoints, {
+        color: '#00f0ff',
+        weight: 3,
+        dashArray: '6, 8',
+        opacity: 0.9
+    }).addTo(map);
+
+    // Origin Badge
+    const origIcon = L.divIcon({
+        className: '',
+        html: `<div class="airport-badge">🛫 ${orig.code}</div>`,
+        iconAnchor: [20, 10]
+    });
+    const origMarker = L.marker([orig.lat, orig.lng], { icon: origIcon }).addTo(map);
+
+    // Dest Badge
+    const destIcon = L.divIcon({
+        className: '',
+        html: `<div class="airport-badge">🛬 ${dest.code}</div>`,
+        iconAnchor: [20, 10]
+    });
+    const destMarker = L.marker([dest.lat, dest.lng], { icon: destIcon }).addTo(map);
+
+    activeAirportMarkers.push(origMarker, destMarker);
+}
+
+function selectFlight(f, altFt, speedKts) {
     currentSelectedIcao = f.icao24;
     document.getElementById('pCallsign').innerText = f.callsign;
     document.getElementById('pModel').innerText = f.model;
-    document.getElementById('pOrigin').innerText = f.origin;
-    document.getElementById('pDest').innerText = f.dest;
-    document.getElementById('pAlt').innerText = `${f.altFt.toLocaleString()} FT`;
-    document.getElementById('pSpeed').innerText = `${f.speedKts} KTS`;
+    document.getElementById('pOrigin').innerText = f.orig.code;
+    document.getElementById('pOriginCity').innerText = f.orig.city;
+    document.getElementById('pDest').innerText = f.dest.code;
+    document.getElementById('pDestCity').innerText = f.dest.city;
+    document.getElementById('pAlt').innerText = `${altFt.toLocaleString()} FT`;
+    document.getElementById('pSpeed').innerText = `${speedKts} KTS`;
     document.getElementById('pHeading').innerText = `${Math.round(f.heading)}°`;
     document.getElementById('pSquawk').innerText = f.squawk;
 
     document.getElementById('flightPanel').classList.add('active');
+
+    drawFlightRoute(f.orig, [f.lat, f.lng], f.dest);
 
     if (planeMarkers[f.icao24]) {
         map.panTo(planeMarkers[f.icao24].getLatLng(), { animate: true });
@@ -559,9 +575,12 @@ function selectFlight(f) {
 
 function closePanel() {
     document.getElementById('flightPanel').classList.remove('active');
+    if (activeRoutePolyline) { map.removeLayer(activeRoutePolyline); activeRoutePolyline = null; }
+    activeAirportMarkers.forEach(m => map.removeLayer(m));
+    activeAirportMarkers = [];
+    currentSelectedIcao = null;
 }
 
-/* Flight Search Filter */
 function filterFlights() {
     const query = document.getElementById('searchFlight').value.toUpperCase();
     if (!query) return;
@@ -573,19 +592,17 @@ function filterFlights() {
     }
 }
 
-/* Live Telemetry Fetch Loop */
 async function fetchFlightTelemetry() {
     try {
         const res = await fetch('/api/flights', { signal: AbortSignal.timeout(3500) });
         if (!res.ok) throw new Error();
         const data = await res.json();
         if (data.states && data.states.length > 0) {
-            renderFlightData(data.states);
+            // Process real API data
             return;
         }
     } catch (e) {
-        // Fallback to Captain Flight Synthetic Radar Engine
-        renderFlightData(generateSimulatedFlights());
+        renderFlightData(generateSimulatedWorldwideFlights());
     }
 }
 
