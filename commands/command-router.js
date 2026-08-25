@@ -1,3 +1,4 @@
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const User = require('../models/User');
 const { handleWhois } = require('./whois');
 const { handleDNS } = require('./dns');

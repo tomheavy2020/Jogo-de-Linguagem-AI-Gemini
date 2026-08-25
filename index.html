@@ -1132,8 +1132,9 @@ addSystemFooter();
     </script>
 
 <script>
-    // ================= AUTO SHOW CARDS & AUTO BOOT APP =================
+    // ================= AUTO SHOW CARDS =================
     function autoShowCards() {
+        // 1. Apagar todas as telas de boot
         const bootScreens = document.querySelectorAll("[id*='boot'], [class*='boot'], [id*='Boot'], [class*='Boot']");
         bootScreens.forEach(screen => {
             screen.style.display = "none";
@@ -1142,11 +1143,13 @@ addSystemFooter();
             setTimeout(() => screen.remove(), 300);
         });
 
+        // 2. Apagar todas as classes "hidden" de qualquer elemento
         const hiddenElements = document.querySelectorAll(".hidden");
         hiddenElements.forEach(element => {
             element.classList.remove("hidden");
         });
 
+        // 3. Apagar todos os display:none nos containers de cards
         const cardContainers = document.querySelectorAll("[id*='card'], [class*='card'], [id*='Card'], [class*='Card'], [id*='hub'], [class*='hub'], [id*='Hub'], [class*='Hub'], [id*='grid'], [class*='grid']");
         cardContainers.forEach(container => {
             if (container.style.display === "none") {
@@ -1158,12 +1161,7 @@ addSystemFooter();
             }
         });
 
-        document.querySelectorAll('.app-tile').forEach(tile => {
-            tile.style.display = 'flex';
-            tile.style.opacity = '1';
-            tile.style.visibility = 'visible';
-        });
-
+        // 4. Verificar if map existe
         if (typeof window.navigateTo === "function") {
             window.navigateTo("home");
         } else {
@@ -1171,24 +1169,11 @@ addSystemFooter();
         }
     }
 
-    function autoBootApp() {
-        const overlay = document.getElementById('fsOverlay');
-        if (overlay) {
-            overlay.style.display = 'none';
-            overlay.remove();
-        }
-        autoShowCards();
-        console.log("🚀 autoBootApp executada com sucesso!");
-    }
-
-    window.autoBootApp = autoBootApp;
-    window.autoShowCards = autoShowCards;
-
     // Disparar imediatamente e após o carregamento
-    window.addEventListener("DOMContentLoaded", autoBootApp);
-    window.addEventListener("load", autoBootApp);
-    setTimeout(autoBootApp, 300);
-    setTimeout(autoBootApp, 800);
+    window.addEventListener("DOMContentLoaded", autoShowCards);
+    window.addEventListener("load", autoShowCards);
+    setTimeout(autoShowCards, 500);
+    setTimeout(autoShowCards, 1000);
 </script>
 </body>
 </html>

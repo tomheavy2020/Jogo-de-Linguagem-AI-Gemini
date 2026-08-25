@@ -1,84 +1,54 @@
-const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const { ArenaManager } = require('./arena-engine');
+const { WebSocketServer } = require('ws');
+let commandRouter = null;
+try {
+    commandRouter = require('../commands/command-router');
+} catch(e) {
+    console.log('[WebSocket] Router de comandos não encontrado:', e.message);
+}
 
-const clients = new Map();
-const authenticatedUsers = new Map();
-const arena = new ArenaManager();
-const JWT_SECRET = process.env.JWT_SECRET;
+let activeConnections = 0;
 
 function initWebSocket(server) {
-    const wss = new WebSocket.Server({ server });
+    const wss = new WebSocketServer({ server });
 
     wss.on('connection', (ws) => {
-        let currentUserId = null;
+        activeConnections++;
+        broadcastOnlineCount(wss);
 
-        ws.on('message', (rawData) => {
+        ws.on('message', async (message) => {
             try {
-                const message = rawData.toString();
-
-                if (message.startsWith('AUTH_TOKEN::')) {
-                    const token = message.replace('AUTH_TOKEN::', '');
-                    try {
-                        const decoded = jwt.verify(token, JWT_SECRET);
-                        const userId = decoded.userId;
-                        currentUserId = userId;
-                        const user = { id: userId, username: decoded.username, isPremium: decoded.isPremium };
-                        authenticatedUsers.set(ws, user);
-                        if (!clients.has(userId)) clients.set(userId, new Set());
-                        clients.get(userId).add(ws);
-                        ws.send('🟢 Autenticado com sucesso!');
-                    } catch (e) { ws.send('🔴 Token inválido.'); }
-                    return;
-                }
-
-                const user = authenticatedUsers.get(ws);
-                if (!user) { ws.send('⚠️ Aguardando autenticação.'); return; }
-
-                // 🔥 INTEGRAÇÃO DA NOVA ARENA
-                if (message.startsWith('ARENA_JOIN::')) {
-                    const parts = message.split('::');
-                    const roomId = parts[1];
-                    const username = parts[2] || user.username;
-                    const maxPlayers = parseInt(parts[3], 10) || 2;
-
-                    arena.join(roomId, user.id, username, ws, maxPlayers);
-                    return;
-                }
-
-                if (message.startsWith('TERM_CMD::')) {
-                    const cmd = message.replace('TERM_CMD::', '');
-                    // Verifica se o jogador está em uma arena para pontuar
-                    for (const [code, room] of arena.rooms) {
-                        if (room.players.has(user.id) && room.status === 'active') {
-                            room.broadcast(`${user.username} executou: ${cmd}`);
-                            room.addPoints(user.id, 10); // Simula pontuação
-                            return;
-                        }
+                const msgStr = message.toString();
+                if (msgStr.startsWith('TERM_CMD::')) {
+                    const cmdText = msgStr.replace('TERM_CMD::', '').trim();
+                    if (commandRouter && typeof commandRouter.handleCommand === 'function') {
+                        const result = await commandRouter.handleCommand(cmdText);
+                        ws.send(`TERM_RESULT::${result}`);
+                    } else {
+                        ws.send(`TERM_RESULT::[COMANDO PROCESSADO]: ${cmdText}`);
                     }
-                    // Roteamento normal de comandos se não estiver na arena...
-                    ws.send(`TERM_RESULT::Comando recebido: ${cmd}`);
-                    return;
+                } else {
+                    ws.send(`PONG::${msgStr}`);
                 }
             } catch (err) {
-                console.error('Erro no WebSocket:', err);
-                ws.send('🔴 Erro interno no processamento.');
+                console.error('[WebSocket Error]:', err);
+                ws.send(`TERM_RESULT::Erro ao processar comando: ${err.message}`);
             }
         });
 
         ws.on('close', () => {
-            if (currentUserId && clients.has(currentUserId)) {
-                clients.get(currentUserId).delete(ws);
-                if (clients.get(currentUserId).size === 0) clients.delete(currentUserId);
-                authenticatedUsers.delete(ws);
-            }
-            // Limpeza da Arena
-            for (const [code, room] of arena.rooms) {
-                arena.leave(code, currentUserId);
-            }
+            activeConnections = Math.max(0, activeConnections - 1);
+            broadcastOnlineCount(wss);
         });
     });
 }
 
-module.exports = { initWebSocket };
+function broadcastOnlineCount(wss) {
+    const payload = JSON.stringify({ type: 'ONLINE_COUNT', count: activeConnections });
+    wss.clients.forEach((client) => {
+        if (client.readyState === 1) {
+            client.send(payload);
+        }
+    });
+}
+
+module.exports = initWebSocket;
