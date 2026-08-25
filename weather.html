@@ -20,7 +20,6 @@ html,body {
 }
 body::before {
   content:''; position:fixed; inset:0; z-index:9999; pointer-events:none;
-  /* OVERLAY VERDE REMOVIDO - mapa com cores reais */
   animation: scanlineMove 8s linear infinite;
 }
 @keyframes scanlineMove { 0%{background-position:0 0} 100%{background-position:0 100vh} }
@@ -372,7 +371,6 @@ body::before {
 </div>
 
 <script>
-const apiKey = 'f26682033c10c580f50134f89739e0ac';
 let globalOpacity = 0.45;
 
 const map = L.map('weatherMap', {
@@ -383,17 +381,16 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
 }).addTo(map);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-function makeLayer(url, opacity) {
-  return L.tileLayer(url + '?appid=' + apiKey, { maxZoom: 19, opacity: opacity, attribution: 'OWM' });
+function makeLayer(layerName, opacity) {
+  return L.tileLayer(`/api/weather/tile/${layerName}/{z}/{x}/{y}`, { maxZoom: 19, opacity: opacity, attribution: 'OWM' });
 }
 const layers = {
-  clouds: makeLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png', 0.30),
-  rain: makeLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png', 0.50),
-  heat: makeLayer('https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png', 0.40),
-  wind: makeLayer('https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png', 0.40),
-  pressure: makeLayer('https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png', 0.35)
+  clouds: L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.30 }),
+  rain: L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.50 }),
+  heat: L.tileLayer('https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.40 }),
+  wind: L.tileLayer('https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.40 }),
+  pressure: L.tileLayer('https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.35 })
 };
-// Nenhuma camada ativa por padrão - mapa satélite limpo
 
 const layerState = { clouds: false, rain: false, heat: false, wind: false, pressure: false };
 
@@ -422,7 +419,7 @@ function toggleFullscreen() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(()=>{});
     btn.innerHTML = '⛶ SAIR';
-n  } else {
+  } else {
     document.exitFullscreen().catch(()=>{});
     btn.innerHTML = '⛶ FULL';
   }
@@ -459,7 +456,7 @@ const miniInfo = document.getElementById('miniInfo');
 
 async function fetchWeatherData(lat, lng) {
   try {
-    const res = await fetch('https://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon=' + lng + '&units=metric&lang=pt_br&appid=' + apiKey);
+    const res = await fetch('/api/weather?lat=' + lat + '&lon=' + lng);
     const data = await res.json();
     if (data.main) {
       document.getElementById('miTemp').innerText = Math.round(data.main.temp) + '°C';
@@ -491,29 +488,6 @@ function initWeatherGPS() {
     );
   } else { locationStatus.innerText = '📍 GPS não suportado'; }
 }
-
-function refreshLayers() {
-  const badge = document.getElementById('refreshBadge');
-  badge.classList.add('show');
-  Object.keys(layers).forEach(key => {
-    if (layerState[key]) {
-      map.removeLayer(layers[key]);
-      const baseUrls = {
-        clouds:'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png',
-        rain:'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png',
-        heat:'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png',
-        wind:'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png',
-        pressure:'https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png'
-      };
-      layers[key] = L.tileLayer(baseUrls[key] + '?appid=' + apiKey + '&t=' + Date.now(), {
-        maxZoom:19, opacity: globalOpacity, attribution:'OWM'
-      });
-      layers[key].addTo(map);
-    }
-  });
-  setTimeout(() => badge.classList.remove('show'), 2000);
-}
-setInterval(refreshLayers, 600000);
 
 const canvas = document.getElementById('particleCanvas');
 const ctx = canvas.getContext('2d');
