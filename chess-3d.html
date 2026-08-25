@@ -46,35 +46,38 @@
   .icon-btn.danger:hover{background:rgba(255,59,59,.1);}
   .icon-btn.danger:active{background:rgba(255,59,59,.18);}
 
-  #bottom-bar{bottom:0; flex-direction:column; gap:8px; padding-bottom:calc(10px + env(safe-area-inset-bottom));
-    border-top:1px solid rgba(0,255,65,.35);}
+  #bottom-bar{bottom:0; flex-direction:column; gap:4px; padding:6px 10px calc(6px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(2,6,4,.75), rgba(2,6,4,.92));
+    backdrop-filter:blur(8px); border-top:1px solid rgba(0,255,65,.25);}
 
-  #status-line{width:100%; text-align:center; font-size:12px; color:#bdf7c9;
-    border:1px dashed rgba(0,255,65,.35); border-radius:8px; padding:7px 8px; letter-spacing:.3px;
+  #status-line{width:100%; text-align:center; font-size:11px; color:#bdf7c9;
+    border:1px dashed rgba(0,255,65,.25); border-radius:6px; padding:4px 6px; letter-spacing:.2px;
     transition: all 0.3s ease;}
 
   #status-line.turn-b{color:#ffd479; border-color:rgba(255,212,121,.4);}
   #status-line.over{color:#ff6b6b; border-color:rgba(255,107,107,.5);}
   #status-line.check{color:#ff6b6b; border-color:rgba(255,107,107,.5);}
 
-  #controls-row{width:100%; display:flex; gap:8px;}
-  #difficulty-row{width:100%; display:flex; gap:6px; margin-top:4px;}
-  .diff-btn{flex:1; padding:8px 4px; border:1px solid var(--neon); border-radius:15px;
-    background:rgba(0,20,8,.55); color:var(--neon); font-family:inherit; font-size:11px;
-    letter-spacing:.5px; cursor:pointer; text-align:center; transition: all 0.3s ease;
-    text-transform:uppercase;}
-  .diff-btn:hover{background:rgba(0,255,65,.2); box-shadow:0 0 15px rgba(0,255,65,.3);}
-  .diff-btn.active{background:var(--neon); color:#012; box-shadow:0 0 20px var(--neon);}
+  #controls-wrap{width:100%; display:flex; flex-wrap:nowrap; gap:4px; align-items:center;}
+  #difficulty-row{display:flex; gap:3px; flex:1;}
+  #controls-row{display:flex; gap:4px; flex:1.2;}
+
+  .diff-btn{flex:1; padding:6px 2px; border:1px solid var(--neon); border-radius:8px;
+    background:rgba(0,20,8,.55); color:var(--neon); font-family:inherit; font-size:10px;
+    letter-spacing:.2px; cursor:pointer; text-align:center; transition: all 0.2s ease;
+    text-transform:uppercase; white-space:nowrap;}
+  .diff-btn:hover{background:rgba(0,255,65,.2);}
+  .diff-btn.active{background:var(--neon); color:#012;}
   .diff-btn.easy{border-color:#00ff41; color:#00ff41;}
   .diff-btn.medium{border-color:#ffd479; color:#ffd479;}
   .diff-btn.hard{border-color:#ff3b3b; color:#ff3b3b;}
-  .diff-btn.easy.active{background:#00ff41; color:#012; box-shadow:0 0 25px #00ff41;}
-  .diff-btn.medium.active{background:#ffd479; color:#012; box-shadow:0 0 25px #ffd479;}
-  .diff-btn.hard.active{background:#ff3b3b; color:#fff; box-shadow:0 0 25px #ff3b3b;}
+  .diff-btn.easy.active{background:#00ff41; color:#012;}
+  .diff-btn.medium.active{background:#ffd479; color:#012;}
+  .diff-btn.hard.active{background:#ff3b3b; color:#fff;}
 
-  .btn{flex:1; padding:11px 6px; border:1px solid var(--neon); border-radius:20px;
-    background:rgba(0,20,8,.55); color:var(--neon); font-family:inherit; font-size:12px;
-    letter-spacing:.3px; cursor:pointer; text-align:center; transition: all 0.2s ease;}
+  .btn{flex:1; padding:6px 4px; border:1px solid var(--neon); border-radius:8px;
+    background:rgba(0,20,8,.55); color:var(--neon); font-family:inherit; font-size:10px;
+    letter-spacing:.2px; cursor:pointer; text-align:center; transition: all 0.2s ease; white-space:nowrap;}
 
   .btn:hover{background:rgba(0,255,65,.15);}
   .btn:active{background:var(--neon); color:#012; transform:scale(0.95);}
@@ -86,7 +89,7 @@
 
   .btn:disabled{opacity:.35; pointer-events:none;}
 
-  #zoom-controls{position:fixed; right:12px; bottom:118px; z-index:9; display:flex; flex-direction:column; gap:8px;}
+  #zoom-controls{position:fixed; right:10px; bottom:64px; z-index:9; display:flex; flex-direction:column; gap:6px;}
 
   .modal-veil{position:fixed; inset:0; background:rgba(0,5,2,.82); z-index:50; display:flex;
     align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px);}
@@ -144,6 +147,7 @@
 <div id="top-bar" class="bar">
   <h1><span class="dot"></span>MATRIX CHESS 3D</h1>
   <div id="top-actions">
+    <button class="icon-btn" id="rotate-btn" title="Girar Tela">🔄</button>
     <button class="icon-btn" id="zoomless-fs" title="Tela cheia">⛶</button>
     <button class="icon-btn danger" id="exit-btn" title="Sair">✕</button>
   </div>
@@ -156,15 +160,17 @@
 
   <div id="status-line" style="display:none;"></div>
 <div id="bottom-bar" class="bar">
-  <div id="difficulty-row">
-    <button class="diff-btn easy" data-level="facil">Fácil</button>
-    <button class="diff-btn medium active" data-level="medio">Médio</button>
-    <button class="diff-btn hard" data-level="dificil">Difícil</button>
-  </div>
-  <div id="controls-row">
-    <button class="btn" id="restart-btn">🔄 Nova Partida</button>
-    <button class="btn" id="undo-btn">↩️ Desfazer</button>
-    <button class="btn friend" id="friend-btn">🤝 Jogar com Amigo</button>
+  <div id="controls-wrap">
+    <div id="difficulty-row">
+      <button class="diff-btn easy" data-level="facil">Fácil</button>
+      <button class="diff-btn medium active" data-level="medio">Médio</button>
+      <button class="diff-btn hard" data-level="dificil">Difícil</button>
+    </div>
+    <div id="controls-row">
+      <button class="btn" id="restart-btn">⚡ Novo</button>
+      <button class="btn" id="undo-btn">↩️ Voltar</button>
+      <button class="btn friend" id="friend-btn">🤝 Amigo</button>
+    </div>
   </div>
 </div>
 
@@ -255,6 +261,22 @@ fsBtn.addEventListener('click', () => {
   } else {
     document.exitFullscreen?.().catch(()=>{});
   }
+});
+
+const rotateBtn = document.getElementById('rotate-btn');
+rotateBtn.addEventListener('click', async () => {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      if (screen.orientation.type.startsWith('portrait')) {
+        await screen.orientation.lock('landscape').catch(() => {});
+      } else {
+        await screen.orientation.lock('portrait').catch(() => {});
+      }
+    }
+  } catch(e) {}
+  // Also rotate 3D camera view theta by 90 deg for comfortable viewing
+  orbit.theta += Math.PI / 2;
+  updateCamera();
 });
 
 /* ---------------- GAME STATE ---------------- */
