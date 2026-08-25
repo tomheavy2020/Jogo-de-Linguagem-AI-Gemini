@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⬡ MATRIX - Customização Cyberpunk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            background:#000;
+            color:#00ff41;
+            font-family:'Rajdhani',sans-serif;
+            min-height:100dvh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:20px;
+            background:
+                radial-gradient(ellipse at 30% 50%, rgba(0,255,65,0.04), transparent 60%),
+                radial-gradient(ellipse at 70% 50%, rgba(0,234,255,0.03), transparent 60%),
+                #000;
+            overflow-y:auto;
+        }
+        .container{
+            max-width:700px;
+            width:100%;
+            background:rgba(0,10,5,0.9);
+            border:2px solid rgba(0,255,65,0.12);
+            border-radius:28px;
+            padding:24px;
+            backdrop-filter:blur(24px);
+            box-shadow:0 0 100px rgba(0,255,65,0.03), inset 0 0 100px rgba(0,255,65,0.01);
+            position:relative;
+            overflow:hidden;
+        }
+        .container::before{
+            content:'';
+            position:absolute;
+            inset:0;
+            background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.005) 3px);
+            pointer-events:none;
+            z-index:0;
+        }
+        .container>*{position:relative;z-index:1}
+        .header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:16px;
+            padding-bottom:12px;
+            border-bottom:1px solid rgba(0,255,65,0.04);
+        }
+        .header h1{
+            font-family:'Orbitron',sans-serif;
+            font-size:14px;
+            font-weight:900;
+            color:#00ff41;
+            text-shadow:0 0 30px rgba(0,255,65,0.2);
+            letter-spacing:2px;
+        }
+        .header h1 span{color:#00f0ff}
+        .header .back{
+            color:rgba(0,255,65,0.25);
+            text-decoration:none;
+            font-family:'Share Tech Mono',monospace;
+            font-size:10px;
+            padding:5px 14px;
+            border:1px solid rgba(0,255,65,0.06);
+            border-radius:20px;
+            transition:0.3s;
+        }
+        .header .back:hover{
+            border-color:rgba(0,255,65,0.2);
+            color:#00ff41;
+        }
+
+        /* === LAYOUT: PERSONAGEM + PAINEL === */
+        .customize-layout{
+            display:flex;
+            gap:24px;
+            align-items:center;
+            min-height:380px;
+        }
+        /* PERSONAGEM (LADO ESQUERDO) */
+        .character-section{
+            flex:0 0 240px;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            position:relative;
+        }
+        .character-display{
+            width:220px;
+            height:280px;
+            background:radial-gradient(ellipse at 50% 80%, rgba(0,255,65,0.03), transparent 70%);
+            border-radius:20px;
+            border:1px solid rgba(0,255,65,0.06);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            position:relative;
+            overflow:hidden;
+        }
+        .character-display .glow-ring{
+            position:absolute;
+            inset:10px;
+            border-radius:50%;
+            border:1px solid rgba(0,255,65,0.04);
+            animation:ringPulse 4s ease-in-out infinite;
+        }
+        .character-display .glow-ring.r2{
+            inset:20px;
+            border-color:rgba(0,234,255,0.03);
+            animation-duration:6s;
+            animation-delay:1s;
+        }
+        @keyframes ringPulse{
+            0%,100%{transform:scale(1);opacity:0.3}
+            50%{transform:scale(1.05);opacity:0.8}
+        }
+        .character-avatar{
+            font-size:120px;
+            line-height:1;
+            filter:drop-shadow(0 0 40px rgba(0,255,65,0.1));
+            transition:0.5s;
+            animation:avatarFloat 4s ease-in-out infinite;
+        }
+        @keyframes avatarFloat{
+            0%,100%{transform:translateY(0)}
+            50%{transform:translateY(-8px)}
+        }
+        .character-name{
+            font-family:'Orbitron',sans-serif;
+            font-size:12px;
+            font-weight:700;
+            color:rgba(255,255,255,0.3);
+            margin-top:10px;
+            letter-spacing:3px;
+        }
+        .character-level{
+            font-family:'Share Tech Mono',monospace;
+            font-size:9px;
+            color:rgba(0,255,65,0.15);
+            letter-spacing:2px;
+        }
+        .character-stats{
+            display:flex;
+            gap:16px;
+            margin-top:10px;
+            font-size:8px;
+            font-family:'Share Tech Mono',monospace;
+            color:rgba(255,255,255,0.15);
+        }
+        .character-stats span b{color:#00ff41;font-weight:700}
+
+        /* PAINEL DE PERSONALIZAÇÃO (LADO DIREITO) */
+        .panel-section{
+            flex:1;
+            min-width:0;
+        }
+        .panel-section .panel-title{
+            font-size:9px;
+            color:rgba(0,255,65,0.2);
+            font-family:'Orbitron',sans-serif;
+            letter-spacing:2px;
+            margin-bottom:10px;
+        }
+        .panel-section .panel-title span{color:rgba(0,255,65,0.3)}
+        .avatar-grid{
+            display:grid;
+            grid-template-columns:repeat(4,1fr);
+            gap:8px;
+            margin-bottom:16px;
+        }
+        .avatar-opt{
+            aspect-ratio:1;
+            border-radius:12px;
+            background:rgba(0,255,65,0.02);
+            border:1px solid rgba(0,255,65,0.04);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:32px;
+            cursor:pointer;
+            transition:0.3s;
+            position:relative;
+            overflow:hidden;
+        }
+        .avatar-opt:hover{
+            border-color:rgba(0,255,65,0.15);
+            transform:scale(1.03);
+            background:rgba(0,255,65,0.03);
+        }
+        .avatar-opt.active{
+            border-color:#00ff41;
+            box-shadow:0 0 30px rgba(0,255,65,0.08);
+            background:rgba(0,255,65,0.04);
+        }
+        .avatar-opt .check{
+            position:absolute;
+            top:3px;
+            right:5px;
+            font-size:8px;
+            color:#00ff41;
+            opacity:0;
+            transition:0.3s;
+        }
+        .avatar-opt.active .check{opacity:1}
+
+        .theme-options{
+            display:flex;
+            gap:6px;
+            flex-wrap:wrap;
+            margin-bottom:12px;
+        }
+        .theme-opt{
+            padding:4px 12px;
+            border:1px solid rgba(0,255,65,0.04);
+            border-radius:16px;
+            font-size:9px;
+            color:rgba(255,255,255,0.2);
+            font-family:'Share Tech Mono',monospace;
+            cursor:pointer;
+            transition:0.3s;
+        }
+        .theme-opt:hover{
+            border-color:rgba(0,255,65,0.1);
+            color:rgba(255,255,255,0.4);
+        }
+        .theme-opt.active{
+            border-color:#00ff41;
+            color:#00ff41;
+            background:rgba(0,255,65,0.03);
+        }
+        .theme-opt .dot{
+            display:inline-block;
+            width:8px;
+            height:8px;
+            border-radius:50%;
+            margin-right:4px;
+            vertical-align:middle;
+        }
+        .theme-opt .dot.neon{background:#00ff41}
+        .theme-opt .dot.cyan{background:#00f0ff}
+        .theme-opt .dot.gold{background:#ffb000}
+        .theme-opt .dot.purple{background:#b000ff}
+
+        .save-btn{
+            width:100%;
+            padding:10px;
+            border:1px solid rgba(0,255,65,0.1);
+            border-radius:12px;
+            background:rgba(0,255,65,0.02);
+            color:#00ff41;
+            font-family:'Orbitron',sans-serif;
+            font-size:10px;
+            font-weight:700;
+            letter-spacing:2px;
+            cursor:pointer;
+            transition:0.3s;
+        }
+        .save-btn:hover{
+            background:rgba(0,255,65,0.04);
+            border-color:rgba(0,255,65,0.2);
+            box-shadow:0 0 30px rgba(0,255,65,0.04);
+        }
+
+        /* RESPONSIVO */
+        @media(max-width:600px){
+            .customize-layout{flex-direction:column;min-height:auto}
+            .character-section{flex:0 0 auto}
+            .character-display{width:160px;height:200px}
+            .character-avatar{font-size:80px}
+            .avatar-grid{grid-template-columns:repeat(4,1fr)}
+            .panel-section .panel-title{text-align:center}
+        }
+        @media(max-width:400px){
+            .container{padding:16px}
+            .avatar-grid{grid-template-columns:repeat(3,1fr)}
+            .character-display{width:130px;height:170px}
+            .character-avatar{font-size:60px}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>⬡ <span>MATRIX</span> CUSTOM</h1>
+        <a href="/perfil.html" class="back">✕ VOLTAR</a>
+    </div>
+
+    <div class="customize-layout">
+        <!-- PERSONAGEM -->
+        <div class="character-section">
+            <div class="character-display">
+                <div class="glow-ring"></div>
+                <div class="glow-ring r2"></div>
+                <div class="character-avatar" id="charAvatar">🧑‍💻</div>
+            </div>
+            <div class="character-name" id="charName">OPERADOR</div>
+            <div class="character-level" id="charLevel">NÍVEL 1 · RECRUTA</div>
+            <div class="character-stats">
+                <span>XP <b id="charXP">0</b></span>
+                <span>•</span>
+                <span>BADGES <b id="charBadges">0</b></span>
+            </div>
+        </div>
+
+        <!-- PAINEL -->
+        <div class="panel-section">
+            <div class="panel-title">⬡ <span>AVATAR</span></div>
+            <div class="avatar-grid" id="avatarGrid">
+                <div class="avatar-opt active" data-avatar="🧑‍💻">🧑‍💻<span class="check">✓</span></div>
+                <div class="avatar-opt" data-avatar="👨‍🚀">👨‍🚀<span class="check">✓</span></div>
+                <div class="avatar-opt" data-avatar="🦾">🦾<span class="check">✓</span></div>
+                <div class="avatar-opt" data-avatar="🤖">🤖<span class="check">✓</span></div>
+                <div class="avatar-opt" data-avatar="👾">👾<span class="check">✓</span></div>
+                <div class="avatar-opt" data-avatar="🧙">🧙<span class="check">✓</span></div>
+                <div class="avatar-opt" data-avatar="⚡">⚡<span class="check">✓</span></div>
+                <div class="avatar-opt" data-avatar="🔮">🔮<span class="check">✓</span></div>
+            </div>
+
+            <div class="panel-title">⬡ <span>TEMA</span></div>
+            <div class="theme-options" id="themeOptions">
+                <div class="theme-opt active" data-theme="neon"><span class="dot neon"></span>NEON</div>
+                <div class="theme-opt" data-theme="cyan"><span class="dot cyan"></span>CYAN</div>
+                <div class="theme-opt" data-theme="gold"><span class="dot gold"></span>GOLD</div>
+                <div class="theme-opt" data-theme="purple"><span class="dot purple"></span>PURPLE</div>
+            </div>
+
+            <button class="save-btn" onclick="saveCustomization()">💾 SALVAR PERSONALIZAÇÃO</button>
+        </div>
+    </div>
+</div>
+
+<script src="/xp-system.js"></script>
+<script>
+// ===== CARREGAR DADOS DO XP =====
+function updateCharStats() {
+    const data = window.matrixXP?.getUserData() || { level:1, xp:0, badges:[], title:'Recruta' };
+    document.getElementById('charLevel').textContent = `NÍVEL ${data.level} · ${data.title}`;
+    document.getElementById('charXP').textContent = data.xp;
+    document.getElementById('charBadges').textContent = data.badges.length;
+}
+updateCharStats();
+
+// ===== AVATAR SELECTION =====
+document.querySelectorAll('.avatar-opt').forEach(opt => {
+    opt.addEventListener('click', function() {
+        document.querySelectorAll('.avatar-opt').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+        const avatar = this.dataset.avatar;
+        document.getElementById('charAvatar').textContent = avatar;
+    });
+});
+
+// ===== THEME SELECTION =====
+document.querySelectorAll('.theme-opt').forEach(opt => {
+    opt.addEventListener('click', function() {
+        document.querySelectorAll('.theme-opt').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+        applyTheme(this.dataset.theme);
+    });
+});
+
+function applyTheme(theme) {
+    const container = document.querySelector('.container');
+    const colors = {
+        neon: { primary: '#00ff41', secondary: '#00f0ff', glow: 'rgba(0,255,65,0.12)' },
+        cyan: { primary: '#00f0ff', secondary: '#0088ff', glow: 'rgba(0,240,255,0.12)' },
+        gold: { primary: '#ffb000', secondary: '#ff6b00', glow: 'rgba(255,176,0,0.12)' },
+        purple: { primary: '#b000ff', secondary: '#ff00ff', glow: 'rgba(176,0,255,0.12)' }
+    };
+    const c = colors[theme] || colors.neon;
+    container.style.borderColor = c.primary;
+    container.style.boxShadow = `0 0 80px ${c.glow}`;
+    document.querySelector('.header h1 span').style.color = c.primary;
+    document.querySelectorAll('.panel-title span').forEach(el => el.style.color = c.primary);
+    document.querySelectorAll('.avatar-opt.active').forEach(el => el.style.borderColor = c.primary);
+}
+
+// ===== SALVAR =====
+function saveCustomization() {
+    const activeAvatar = document.querySelector('.avatar-opt.active');
+    const activeTheme = document.querySelector('.theme-opt.active');
+    if (activeAvatar) {
+        localStorage.setItem('matrix_avatar', activeAvatar.dataset.avatar);
+    }
+    if (activeTheme) {
+        localStorage.setItem('matrix_theme', activeTheme.dataset.theme);
+    }
+    const btn = document.querySelector('.save-btn');
+    btn.textContent = '✅ SALVO!';
+    btn.style.borderColor = '#00ff41';
+    setTimeout(() => {
+        btn.textContent = '💾 SALVAR PERSONALIZAÇÃO';
+        btn.style.borderColor = 'rgba(0,255,65,0.1)';
+    }, 2000);
+}
+
+// ===== RESTORE SAVED =====
+const savedAvatar = localStorage.getItem('matrix_avatar');
+if (savedAvatar) {
+    document.getElementById('charAvatar').textContent = savedAvatar;
+    document.querySelectorAll('.avatar-opt').forEach(o => {
+        o.classList.toggle('active', o.dataset.avatar === savedAvatar);
+    });
+}
+const savedTheme = localStorage.getItem('matrix_theme');
+if (savedTheme) {
+    document.querySelectorAll('.theme-opt').forEach(o => {
+        o.classList.toggle('active', o.dataset.theme === savedTheme);
+    });
+    applyTheme(savedTheme);
+}
+</script>
+</body>
+</html>

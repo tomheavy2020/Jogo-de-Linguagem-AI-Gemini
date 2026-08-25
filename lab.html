@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <title>LABORATÓRIO VIRTUAL - MATRIX OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #00ff41;
+            --cyan: #00f0ff;
+            --gold: #ffb000;
+            --red: #ff3b5c;
+            --bg: #000;
+            --panel: rgba(10, 18, 12, 0.85);
+            --border: rgba(0, 255, 65, 0.3);
+            --editor-bg: #0a0f0a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'JetBrains Mono', 'Share Tech Mono', monospace;
+            height: 100dvh;
+            width: 100dvw;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        /* Header */
+        .lab-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 14px;
+            background: #0a0f0a;
+            border-bottom: 2px solid rgba(0, 255, 65, 0.3);
+            height: 48px;
+            flex-shrink: 0;
+        }
+        .lab-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: var(--neon);
+            text-shadow: 0 0 15px rgba(0,255,65,0.5);
+        }
+        .lab-controls {
+            display: flex;
+            gap: 6px;
+        }
+        .lab-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,255,65,0.3);
+            background: rgba(0,255,65,0.08);
+            color: var(--neon);
+            cursor: pointer;
+            font-size: 14px;
+            display: grid;
+            place-items: center;
+            transition: all 0.2s;
+        }
+        .lab-btn:active { background: rgba(0,255,65,0.3); }
+        .lab-btn.close { border-color: rgba(255,59,92,0.5); color: var(--red); }
+
+        /* Layout principal */
+        .lab-main {
+            display: flex;
+            height: calc(100dvh - 48px - 40px);
+            gap: 2px;
+        }
+
+        /* Painel de atividades (esquerda) */
+        .lab-sidebar {
+            width: 200px;
+            background: #0a0f0a;
+            border-right: 1px solid rgba(0,255,65,0.2);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        .sidebar-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--gold);
+            padding: 12px 10px 8px;
+            border-bottom: 1px solid rgba(255,176,0,0.3);
+        }
+        .activity-item {
+            padding: 10px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0,255,65,0.08);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.7);
+        }
+        .activity-item:hover { background: rgba(0,255,65,0.08); color: #fff; }
+        .activity-item.active {
+            background: rgba(0,255,65,0.15);
+            border-left: 3px solid var(--neon);
+            color: var(--neon);
+        }
+        .activity-item .num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(0,255,65,0.1);
+            border: 1px solid rgba(0,255,65,0.3);
+            display: grid;
+            place-items: center;
+            font-size: 9px;
+            flex-shrink: 0;
+        }
+        .activity-item.completed .num {
+            background: var(--neon);
+            color: #000;
+            border-color: var(--neon);
+        }
+
+        /* Área central - Editor + Console */
+        .lab-editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* Console de comandos */
+        .lab-console {
+            background: #000;
+            border-bottom: 1px solid rgba(0,255,65,0.25);
+            height: 40%;
+            display: flex;
+            flex-direction: column;
+            min-height: 120px;
+        }
+        .console-header {
+            padding: 6px 10px;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: rgba(0,255,65,0.6);
+            border-bottom: 1px solid rgba(0,255,65,0.1);
+            font-family: 'Orbitron', sans-serif;
+        }
+        .console-output {
+            flex: 1;
+            padding: 8px 10px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.5;
+            color: rgba(0,255,65,0.85);
+        }
+        .console-output .cmd-line { color: var(--cyan); }
+        .console-output .cmd-line::before { content: '$ '; color: var(--neon); }
+        .console-output .success { color: var(--neon); }
+        .console-output .error { color: var(--red); }
+        .console-output .info { color: var(--gold); }
+
+        .console-input-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-top: 1px solid rgba(0,255,65,0.15);
+        }
+        .console-prompt {
+            color: var(--neon);
+            font-weight: bold;
+            font-size: 11px;
+        }
+        .console-input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            caret-color: var(--neon);
+        }
+
+        /* Resultado visual (direita inferior) */
+        .lab-preview {
+            background: #0a0f0a;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-header {
+            padding: 6px 10px;
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: rgba(0,255,65,0.6);
+            border-bottom: 1px solid rgba(0,255,65,0.1);
+            font-family: 'Orbitron', sans-serif;
+        }
+        .preview-content {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-result {
+            font-size: 12px;
+            color: rgba(255,255,255,0.85);
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* Barra inferior */
+        .lab-footer {
+            height: 40px;
+            background: #0a0f0a;
+            border-top: 1px solid rgba(0,255,65,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 14px;
+            font-size: 9px;
+            color: rgba(0,255,65,0.5);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 600px) {
+            .lab-sidebar { display: none; }
+            .lab-main { flex-direction: column; }
+            .lab-console { height: 45%; }
+            .lab-preview { height: 55%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="lab-header">
+        <span class="lab-title">⬡ LABORATÓRIO VIRTUAL</span>
+        <div class="lab-controls">
+            <button class="lab-btn" onclick="runCommand()" title="Executar">▶</button>
+            <button class="lab-btn" onclick="clearConsole()" title="Limpar">⌫</button>
+            <button class="lab-btn close" onclick="window.location.href='/mentoria.html'">✕</button>
+        </div>
+    </div>
+
+    <div class="lab-main">
+        <!-- Sidebar de atividades -->
+        <div class="lab-sidebar">
+            <div class="sidebar-title">📚 ATIVIDADES</div>
+            <div class="activity-item active" data-id="1" onclick="loadActivity(1)">
+                <span class="num">1</span> Terminal Linux
+            </div>
+            <div class="activity-item" data-id="2" onclick="loadActivity(2)">
+                <span class="num">2</span> HTML Básico
+            </div>
+            <div class="activity-item" data-id="3" onclick="loadActivity(3)">
+                <span class="num">3</span> CSS Neon
+            </div>
+            <div class="activity-item" data-id="4" onclick="loadActivity(4)">
+                <span class="num">4</span> JavaScript
+            </div>
+            <div class="activity-item" data-id="5" onclick="loadActivity(5)">
+                <span class="num">5</span> Python
+            </div>
+        </div>
+
+        <!-- Editor + Console -->
+        <div class="lab-editor-area">
+            <div class="lab-console">
+                <div class="console-header">▶ TERMINAL</div>
+                <div class="console-output" id="consoleOutput">
+                    <div class="info">Bem-vindo ao Laboratório Virtual!</div>
+                    <div class="info">Digite um comando e pressione Enter.</div>
+                    <div class="info">Dica: digite <b>help</b> para ver os comandos.</div>
+                    <div style="height:8px"></div>
+                </div>
+                <div class="console-input-row">
+                    <span class="console-prompt">$</span>
+                    <input type="text" class="console-input" id="consoleInput" placeholder="Digite um comando..." onkeydown="if(event.key==='Enter')runCommand()">
+                </div>
+            </div>
+
+            <div class="lab-preview">
+                <div class="preview-header">▶ RESULTADO</div>
+                <div class="preview-content">
+                    <div class="preview-result" id="previewResult">
+                        Execute um comando para ver o resultado aqui
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="lab-footer">
+        <span>🟢 MATRIX OS LAB · v1.0</span>
+        <span id="labStatus">PRONTO</span>
+    </div>
+
+<script>
+const activities = {
+    1: {
+        title: 'Terminal Linux',
+        commands: ['pwd', 'ls', 'whoami', 'help'],
+        description: 'Aprenda os comandos básicos do terminal Linux'
+    },
+    2: {
+        title: 'HTML Básico',
+        commands: ['html'],
+        description: 'Crie sua primeira página HTML'
+    },
+    3: {
+        title: 'CSS Neon',
+        commands: ['css'],
+        description: 'Estilize com efeitos neon'
+    },
+    4: {
+        title: 'JavaScript',
+        commands: ['js'],
+        description: 'Adicione interatividade'
+    },
+    5: {
+        title: 'Python',
+        commands: ['python'],
+        description: 'Primeiros passos com Python'
+    }
+};
+
+function loadActivity(id) {
+    document.querySelectorAll('.activity-item').forEach(a => a.classList.remove('active'));
+    document.querySelector(`[data-id="${id}"]`).classList.add('active');
+
+    const activity = activities[id];
+    const output = document.getElementById('consoleOutput');
+    output.innerHTML = `
+        <div class="info">📚 ${activity.title}</div>
+        <div class="info">${activity.description}</div>
+        <div style="height:8px"></div>
+        <div class="info">Comandos disponíveis: ${activity.commands.map(c => '<b>' + c + '</b>').join(', ')}</div>
+        <div style="height:8px"></div>
+    `;
+    document.getElementById('previewResult').textContent = 'Selecione um comando para começar...';
+}
+
+function runCommand() {
+    const input = document.getElementById('consoleInput');
+    const cmd = input.value.trim().toLowerCase();
+    const output = document.getElementById('consoleOutput');
+    const preview = document.getElementById('previewResult');
+
+    if (!cmd) return;
+
+    output.innerHTML += `<div class="cmd-line">${input.value}</div>`;
+
+    switch(cmd) {
+        case 'help':
+            output.innerHTML += '<div class="info">Comandos disponíveis:</div>';
+            output.innerHTML += '<div class="info">pwd - mostrar diretório atual</div>';
+            output.innerHTML += '<div class="info">ls - listar arquivos</div>';
+            output.innerHTML += '<div class="info">whoami - mostrar usuário</div>';
+            output.innerHTML += '<div class="info">html - exemplo HTML</div>';
+            output.innerHTML += '<div class="info">css - exemplo CSS</div>';
+            output.innerHTML += '<div class="info">js - exemplo JavaScript</div>';
+            output.innerHTML += '<div class="info">python - exemplo Python</div>';
+            output.innerHTML += '<div class="info">clear - limpar console</div>';
+            break;
+
+        case 'pwd':
+            output.innerHTML += '<div class="success">/home/aluno/laboratorio</div>';
+            preview.textContent = '📂 Você está em: /home/aluno/laboratorio';
+            break;
+
+        case 'ls':
+            output.innerHTML += '<div class="success">projeto1  projeto2  README.md  style.css  index.html</div>';
+            preview.textContent = '📁 Arquivos listados com sucesso!';
+            break;
+
+        case 'whoami':
+            output.innerHTML += '<div class="success">aluno_matrix</div>';
+            preview.textContent = '👤 Usuário: aluno_matrix';
+            break;
+
+        case 'html':
+            output.innerHTML += '<div class="success">Criando index.html...</div>';
+            preview.innerHTML = '<div style="background:#fff;color:#000;padding:15px;border-radius:8px;font-family:sans-serif;"><h1 style="color:#000;">Olá, Matrix!</h1><p>Esta é sua primeira página HTML</p></div>';
+            break;
+
+        case 'css':
+            output.innerHTML += '<div class="success">Aplicando estilo neon...</div>';
+            preview.innerHTML = '<div style="background:#000;padding:20px;border:2px solid #00ff41;border-radius:12px;box-shadow:0 0 30px rgba(0,255,65,0.5);color:#00ff41;font-family:monospace;"><h2 style="text-shadow:0 0 10px #00ff41;">NEON!</h2><p>Glow ativo!</p></div>';
+            break;
+
+        case 'js':
+            output.innerHTML += '<div class="success">Executando JavaScript...</div>';
+            preview.innerHTML = '<div style="color:#00ff41;font-size:16px;">Soma: 2 + 2 = <b>4</b></div>';
+            break;
+
+        case 'python':
+            output.innerHTML += '<div class="success">Executando Python...</div>';
+            preview.innerHTML = '<div style="color:#00f0ff;font-family:monospace;text-align:left;"><pre>def saudacao(nome):\n    return f"Olá, {nome}!"\n\nprint(saudacao("Matrix"))</pre><br><b>Saída: Olá, Matrix!</b></div>';
+            break;
+
+        case 'clear':
+            output.innerHTML = '';
+            input.value = '';
+            return;
+
+        default:
+            output.innerHTML += `<div class="error">Comando não encontrado: ${input.value}</div>`;
+            output.innerHTML += '<div class="info">Digite <b>help</b> para ver os comandos.</div>';
+            preview.textContent = '❌ Erro: comando não encontrado';
+    }
+
+    input.value = '';
+    output.scrollTop = output.scrollHeight;
+
+    // Marcar atividade como concluída
+    document.getElementById('labStatus').textContent = 'EXECUTADO';
+    setTimeout(() => document.getElementById('labStatus').textContent = 'PRONTO', 2000);
+}
+
+function clearConsole() {
+    document.getElementById('consoleOutput').innerHTML = '';
+    document.getElementById('previewResult').textContent = 'Console limpo';
+}
+</script>
+</body>
+</html>

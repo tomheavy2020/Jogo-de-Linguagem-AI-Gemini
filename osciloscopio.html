@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Matrix Osciloscópio</title>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-dim: #00b32d;
+            --neon-cyan: #00f0ff;
+            --bg: #000;
+            --panel: rgba(0, 8, 0, 0.9);
+            --border: rgba(0, 255, 65, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: #000; color: var(--neon);
+            font-family: 'Courier New', monospace;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .osc-container {
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100dvw;
+            max-width: 500px; margin: 0 auto;
+            padding: 8px; gap: 6px;
+        }
+
+        /* Header */
+        .osc-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; border: 1px solid var(--border);
+            border-radius: 10px; background: var(--panel);
+            flex-shrink: 0;
+        }
+        .osc-title {
+            font-size: 12px; font-weight: bold; letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--neon);
+        }
+        .osc-status {
+            display: flex; align-items: center; gap: 4px;
+            font-size: 8px; color: var(--neon-cyan);
+        }
+        .osc-status .dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--neon); animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .osc-close {
+            background: transparent; border: 1px solid #ff3b3b;
+            color: #ff3b3b; padding: 3px 10px; border-radius: 6px;
+            cursor: pointer; font-family: inherit; font-size: 10px;
+        }
+
+        /* Tela do osciloscópio */
+        .osc-screen {
+            flex: 1; border: 2px solid var(--border);
+            border-radius: 10px; background: #000;
+            position: relative; overflow: hidden;
+            box-shadow: inset 0 0 40px rgba(0,255,65,0.05);
+            min-height: 200px;
+        }
+        #oscCanvas { width: 100%; height: 100%; display: block; }
+
+        /* Grid do osciloscópio */
+        .osc-grid-overlay {
+            position: absolute; inset: 0; pointer-events: none;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,255,65,0.08) 40px),
+                repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,255,65,0.08) 40px);
+        }
+
+        /* Controles */
+        .osc-controls {
+            display: flex; flex-wrap: wrap; gap: 5px;
+            flex-shrink: 0;
+        }
+        .osc-btn {
+            flex: 1; min-width: 60px;
+            background: rgba(0, 15, 0, 0.8); border: 1px solid var(--border);
+            color: var(--neon); padding: 8px 4px; border-radius: 8px;
+            cursor: pointer; font-family: inherit; font-size: 8px;
+            transition: all 0.15s; text-align: center;
+        }
+        .osc-btn:active {
+            background: rgba(0,255,65,0.2);
+            transform: scale(0.94);
+        }
+        .osc-btn.active {
+            background: rgba(0,255,65,0.15);
+            box-shadow: 0 0 10px rgba(0,255,65,0.3);
+        }
+
+        /* Frequência e medidas */
+        .osc-readout {
+            display: flex; justify-content: space-around;
+            padding: 6px; border: 1px solid var(--border);
+            border-radius: 8px; background: var(--panel);
+            flex-shrink: 0; font-size: 9px;
+        }
+        .readout-item { text-align: center; }
+        .readout-label { font-size: 6px; color: rgba(0,255,65,0.5); }
+        .readout-value { font-size: 11px; font-weight: bold; text-shadow: 0 0 8px var(--neon); }
+    </style>
+</head>
+<body>
+    <div class="osc-container">
+        <div class="osc-header">
+            <span class="osc-title">📟 OSCILOSCÓPIO</span>
+            <span class="osc-status"><span class="dot"></span>LIVE</span>
+            <button class="osc-close" onclick="window.location.href='/tools.html'">✕</button>
+        </div>
+
+        <div class="osc-screen">
+            <canvas id="oscCanvas"></canvas>
+            <div class="osc-grid-overlay"></div>
+        </div>
+
+        <div class="osc-readout">
+            <div class="readout-item">
+                <div class="readout-label">FREQ</div>
+                <div class="readout-value" id="freqValue">1.0 kHz</div>
+            </div>
+            <div class="readout-item">
+                <div class="readout-label">AMPL</div>
+                <div class="readout-value" id="ampValue">2.0 V</div>
+            </div>
+            <div class="readout-item">
+                <div class="readout-label">TIME/DIV</div>
+                <div class="readout-value" id="timeDiv">1 ms</div>
+            </div>
+            <div class="readout-item">
+                <div class="readout-label">VOLT/DIV</div>
+                <div class="readout-value" id="voltDiv">1 V</div>
+            </div>
+        </div>
+
+        <div class="osc-controls">
+            <button class="osc-btn active" onclick="setWave('sine', this)">SIN</button>
+            <button class="osc-btn" onclick="setWave('square', this)">SQUARE</button>
+            <button class="osc-btn" onclick="setWave('triangle', this)">TRI</button>
+            <button class="osc-btn" onclick="setWave('sawtooth', this)">SAW</button>
+            <button class="osc-btn" onclick="setWave('noise', this)">NOISE</button>
+            <button class="osc-btn" onclick="togglePause(this)">⏸ PAUSE</button>
+            <button class="osc-btn" onclick="changeFreq(-1)">FREQ -</button>
+            <button class="osc-btn" onclick="changeFreq(1)">FREQ +</button>
+        </div>
+    </div>
+
+<script>
+// ================= OSCILOSCÓPIO =================
+const canvas = document.getElementById('oscCanvas');
+const ctx = canvas.getContext('2d');
+let waveType = 'sine';
+let frequency = 1.0; // kHz
+let amplitude = 2.0; // volts
+let isPaused = false;
+let timeDiv = 1; // ms
+let voltDiv = 1; // V
+let phase = 0;
+
+const freqEl = document.getElementById('freqValue');
+const ampEl = document.getElementById('ampValue');
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function setWave(type, btn) {
+    waveType = type;
+    document.querySelectorAll('.osc-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function togglePause(btn) {
+    isPaused = !isPaused;
+    btn.textContent = isPaused ? '▶ PLAY' : '⏸ PAUSE';
+    btn.classList.toggle('active', isPaused);
+}
+
+function changeFreq(delta) {
+    frequency = Math.max(0.1, Math.min(10, frequency + delta * 0.5));
+    freqEl.textContent = frequency.toFixed(1) + ' kHz';
+}
+
+function getWaveValue(t) {
+    const x = t * frequency * 2 * Math.PI;
+    switch(waveType) {
+        case 'sine':
+            return Math.sin(x) * amplitude;
+        case 'square':
+            return (Math.sin(x) >= 0 ? 1 : -1) * amplitude;
+        case 'triangle':
+            return (2 / Math.PI) * Math.asin(Math.sin(x)) * amplitude;
+        case 'sawtooth':
+            return (2 * ((t * frequency) % 1) - 1) * amplitude;
+        case 'noise':
+            return (Math.random() * 2 - 1) * amplitude;
+        default:
+            return Math.sin(x) * amplitude;
+    }
+}
+
+function draw(now) {
+    requestAnimationFrame(draw);
+    if(isPaused) return;
+
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Desenhar linha central
+    ctx.strokeStyle = 'rgba(0,255,65,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h/2);
+    ctx.lineTo(w, h/2);
+    ctx.stroke();
+
+    // Desenhar onda
+    ctx.strokeStyle = '#00ff41';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#00ff41';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+
+    const samples = 500;
+    for(let i = 0; i < samples; i++) {
+        const t = i / samples;
+        const value = getWaveValue(t + phase);
+        const x = t * w;
+        const y = h/2 - (value / 4) * (h/2);
+
+        if(i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Desenhar pontos de grade
+    ctx.fillStyle = 'rgba(0,255,65,0.3)';
+    for(let i = 1; i < 8; i++) {
+        ctx.fillRect(w/8 * i, h/2 - 2, 1, 4);
+    }
+    for(let i = 1; i < 4; i++) {
+        ctx.fillRect(w/2 - 2, h/4 * i, 4, 1);
+    }
+
+    phase += 0.002;
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>MATRIX CHAT</title>
+
+<style>
+:root {
+    --neon:#00ff41;
+    --cyan:#00f0ff;
+    --gold:#ffb000;
+    --red:#ff3b3b;
+    --panel:rgba(0,10,0,.94);
+    --panel2:rgba(0,20,5,.75);
+    --border:rgba(0,255,65,.3);
+    --border-strong:rgba(0,255,65,.65);
+}
+
+* {
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body {
+    width:100%;
+    height:100%;
+    height:100dvh;
+    overflow:hidden;
+    background:#000;
+    color:var(--neon);
+    font-family:"Courier New",monospace;
+}
+
+body {
+    position:fixed;
+    inset:0;
+}
+
+/* MATRIX BACKGROUND */
+
+body::before {
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:.08;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 3px,
+            rgba(0,255,65,.08) 4px
+        );
+}
+
+/* APP */
+
+.chat-container {
+    position:relative;
+    z-index:1;
+    display:flex;
+    width:100%;
+    max-width:1000px;
+    height:100dvh;
+    margin:0 auto;
+    background:#000;
+    border-left:1px solid rgba(0,255,65,.12);
+    border-right:1px solid rgba(0,255,65,.12);
+}
+
+/* SIDEBAR */
+
+.rooms-sidebar {
+    width:130px;
+    min-width:130px;
+    height:100%;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+    scrollbar-width:none;
+}
+
+.rooms-sidebar::-webkit-scrollbar {
+    display:none;
+}
+
+.rooms-header {
+    min-height:48px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:10px 5px;
+    text-align:center;
+    font-size:10px;
+    font-weight:bold;
+    color:var(--cyan);
+    border-bottom:1px solid var(--border);
+    text-shadow:0 0 8px rgba(0,240,255,.6);
+}
+
+.room-btn {
+    width:100%;
+    min-height:68px;
+    padding:10px 5px;
+    border:0;
+    border-bottom:1px solid rgba(0,255,65,.08);
+    background:transparent;
+    color:var(--neon);
+    font-family:inherit;
+    font-size:10px;
+    text-align:center;
+    cursor:pointer;
+    position:relative;
+    transition:.15s;
+}
+
+.room-btn:active {
+    transform:scale(.97);
+}
+
+.room-btn:hover {
+    background:rgba(0,255,65,.08);
+}
+
+.room-btn.active {
+    background:linear-gradient(
+        90deg,
+        rgba(0,255,65,.18),
+        rgba(0,255,65,.05)
+    );
+    border-left:3px solid var(--neon);
+    box-shadow:inset 0 0 18px rgba(0,255,65,.06);
+}
+
+.room-online {
+    margin-top:5px;
+    font-size:7px;
+    color:rgba(0,255,65,.45);
+}
+
+/* MAIN */
+
+.chat-main {
+    flex:1;
+    min-width:0;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(0,255,65,.025),
+            transparent 60%
+        ),
+        var(--panel);
+}
+
+/* HEADER */
+
+.chat-header {
+    min-height:56px;
+    padding:8px 12px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0;
+    background:rgba(0,5,0,.96);
+}
+
+.room-info {
+    min-width:0;
+    flex:1;
+}
+
+.chat-room-name {
+    display:block;
+    font-size:12px;
+    font-weight:bold;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.chat-online {
+    display:block;
+    margin-top:3px;
+    font-size:8px;
+    color:var(--cyan);
+}
+
+.connection-status {
+    font-size:8px;
+    white-space:nowrap;
+}
+
+.connection-status.online {
+    color:var(--neon);
+}
+
+.connection-status.offline {
+    color:var(--red);
+}
+
+.chat-close {
+    flex-shrink:0;
+    background:transparent;
+    border:1px solid var(--red);
+    color:var(--red);
+    min-width:42px;
+    min-height:34px;
+    padding:5px 9px;
+    border-radius:7px;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:10px;
+}
+
+.chat-close:active {
+    transform:scale(.94);
+    background:rgba(255,59,59,.12);
+}
+
+/* MESSAGES */
+
+.messages-area {
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    scroll-behavior:smooth;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(0,255,65,.3) transparent;
+}
+
+.messages-area::-webkit-scrollbar {
+    width:4px;
+}
+
+.messages-area::-webkit-scrollbar-thumb {
+    background:rgba(0,255,65,.3);
+    border-radius:10px;
+}
+
+/* EMPTY */
+
+.empty-chat {
+    margin:auto;
+    text-align:center;
+    opacity:.35;
+    font-size:10px;
+    line-height:1.8;
+}
+
+/* MESSAGE */
+
+.message {
+    max-width:min(82%,620px);
+    padding:9px 11px;
+    border-radius:10px;
+    font-size:11px;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+    animation:msgIn .18s ease-out;
+}
+
+@keyframes msgIn {
+    from {
+        opacity:0;
+        transform:translateY(6px) scale(.98);
+    }
+    to {
+        opacity:1;
+        transform:translateY(0) scale(1);
+    }
+}
+
+.message.mine {
+    align-self:flex-end;
+    background:linear-gradient(
+        135deg,
+        rgba(0,50,12,.75),
+        rgba(0,25,5,.75)
+    );
+    border:1px solid var(--border-strong);
+    box-shadow:0 0 12px rgba(0,255,65,.05);
+}
+
+.message.other {
+    align-self:flex-start;
+    background:rgba(10,20,10,.62);
+    border:1px solid rgba(0,255,65,.16);
+}
+
+.msg-author {
+    margin-bottom:3px;
+    color:var(--cyan);
+    font-size:8px;
+    font-weight:bold;
+}
+
+.msg-text {
+    white-space:pre-wrap;
+}
+
+.msg-time {
+    margin-top:4px;
+    color:rgba(0,255,65,.38);
+    font-size:7px;
+    text-align:right;
+}
+
+.system-message {
+    align-self:center;
+    max-width:90%;
+    padding:6px 10px;
+    border:1px solid rgba(0,240,255,.2);
+    border-radius:7px;
+    color:rgba(0,240,255,.65);
+    font-size:8px;
+    text-align:center;
+}
+
+/* INPUT */
+
+.chat-input-area {
+    display:flex;
+    gap:7px;
+    padding:8px;
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
+    border-top:1px solid var(--border);
+    background:rgba(0,5,0,.98);
+    flex-shrink:0;
+}
+
+.chat-input {
+    flex:1;
+    min-width:0;
+    min-height:42px;
+    padding:10px 12px;
+    background:rgba(0,0,0,.8);
+    border:1px solid var(--border);
+    color:var(--neon);
+    font-family:inherit;
+    font-size:11px;
+    border-radius:9px;
+    outline:none;
+}
+
+.chat-input::placeholder {
+    color:rgba(0,255,65,.35);
+}
+
+.chat-input:focus {
+    border-color:var(--neon);
+    box-shadow:0 0 10px rgba(0,255,65,.12);
+}
+
+.chat-send {
+    flex:0 0 48px;
+    min-height:42px;
+    border:1px solid rgba(0,255,65,.4);
+    background:linear-gradient(
+        160deg,
+        #0a3a0a,
+        #00ff41
+    );
+    color:#000;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:bold;
+    border-radius:9px;
+    box-shadow:0 0 10px rgba(0,255,65,.12);
+}
+
+.chat-send:active {
+    transform:scale(.94);
+}
+
+/* MOBILE */
+
+@media (max-width:600px) {
+
+    .chat-container {
+        border:0;
+    }
+
+    .rooms-sidebar {
+        width:82px;
+        min-width:82px;
+    }
+
+    .rooms-header {
+        font-size:8px;
+        min-height:45px;
+    }
+
+    .room-btn {
+        min-height:64px;
+        font-size:8px;
+        padding:8px 2px;
+    }
+
+    .room-online {
+        font-size:6px;
+    }
+
+    .chat-header {
+        min-height:54px;
+        padding:7px 8px;
+        gap:6px;
+    }
+
+    .chat-room-name {
+        font-size:10px;
+    }
+
+    .chat-online {
+        font-size:7px;
+    }
+
+    .connection-status {
+        display:none;
+    }
+
+    .messages-area {
+        padding:9px;
+        gap:7px;
+    }
+
+    .message {
+        max-width:88%;
+        font-size:10px;
+        padding:8px 10px;
+    }
+
+    .chat-input-area {
+        padding:7px;
+    }
+
+    .chat-input {
+        font-size:10px;
+    }
+
+    .chat-send {
+        flex-basis:44px;
+    }
+}
+
+@media (max-width:380px) {
+
+    .rooms-sidebar {
+        width:70px;
+        min-width:70px;
+    }
+
+    .room-btn {
+        font-size:7px;
+    }
+
+    .chat-close {
+        min-width:36px;
+        padding:4px 6px;
+    }
+}
+
+/* DESKTOP */
+
+@media (min-width:900px) {
+
+    .chat-container {
+        box-shadow:
+            0 0 40px rgba(0,255,65,.06);
+    }
+
+    .message {
+        font-size:12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="chat-container">
+
+    <aside class="rooms-sidebar">
+
+        <div class="rooms-header">
+            📡 SALAS
+        </div>
+
+        <button class="room-btn active"
+                data-room="geral"
+                onclick="joinRoom('geral', this)">
+            💬 GERAL
+            <div class="room-online" id="online-geral">0 online</div>
+        </button>
+
+        <button class="room-btn"
+                data-room="osint"
+                onclick="joinRoom('osint', this)">
+            🔍 OSINT
+            <div class="room-online" id="online-osint">0 online</div>
+        </button>
+
+        <button class="room-btn"
+                data-room="nautico"
+                onclick="joinRoom('nautico', this)">
+            ⛵ NÁUTICO
+            <div class="room-online" id="online-nautico">0 online</div>
+        </button>
+
+        <button class="room-btn"
+                data-room="jogos"
+                onclick="joinRoom('jogos', this)">
+            🎮 JOGOS
+            <div class="room-online" id="online-jogos">0 online</div>
+        </button>
+
+    </aside>
+
+    <main class="chat-main">
+
+        <header class="chat-header">
+
+            <div class="room-info">
+                <span class="chat-room-name" id="currentRoomName">
+                    💬 GERAL
+                </span>
+
+                <span class="chat-online" id="onlineCount">
+                    0 online
+                </span>
+            </div>
+
+            <span class="connection-status offline"
+                  id="connectionStatus">
+                ● OFFLINE
+            </span>
+
+            <button class="chat-close"
+                    onclick="goBack()">
+                ✕
+            </button>
+
+        </header>
+
+        <div class="messages-area"
+             id="messagesArea">
+
+            <div class="empty-chat" id="emptyChat">
+                [ MATRIX CHAT ]<br>
+                Aguardando conexão...
+            </div>
+
+        </div>
+
+        <div class="chat-input-area">
+
+            <input
+                class="chat-input"
+                id="chatInput"
+                type="text"
+                maxlength="2000"
+                placeholder="Digite sua mensagem..."
+                autocomplete="off"
+                enterkeyhint="send"
+            >
+
+            <button class="chat-send"
+                    id="sendButton"
+                    onclick="sendMessage()">
+                ▶
+            </button>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+
+'use strict';
+
+/* ==============================
+   CONFIGURAÇÃO
+============================== */
+
+let currentRoom = 'geral';
+let ws = null;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+
+const MAX_RECONNECT_DELAY = 10000;
+
+const username =
+    'USER-' +
+    Math.random()
+        .toString(36)
+        .substring(2, 5)
+        .toUpperCase();
+
+const roomNames = {
+    geral: '💬 GERAL',
+    osint: '🔍 OSINT',
+    nautico: '⛵ NÁUTICO',
+    jogos: '🎮 JOGOS'
+};
+
+/* ==============================
+   ELEMENTOS
+============================== */
+
+const messagesArea =
+    document.getElementById('messagesArea');
+
+const chatInput =
+    document.getElementById('chatInput');
+
+const onlineCount =
+    document.getElementById('onlineCount');
+
+const currentRoomName =
+    document.getElementById('currentRoomName');
+
+const connectionStatus =
+    document.getElementById('connectionStatus');
+
+const emptyChat =
+    document.getElementById('emptyChat');
+
+/* ==============================
+   STATUS
+============================== */
+
+function setConnectionStatus(online) {
+
+    if (online) {
+
+        connectionStatus.textContent = '● ONLINE';
+
+        connectionStatus.classList.remove('offline');
+        connectionStatus.classList.add('online');
+
+    } else {
+
+        connectionStatus.textContent = '● OFFLINE';
+
+        connectionStatus.classList.remove('online');
+        connectionStatus.classList.add('offline');
+
+    }
+}
+
+/* ==============================
+   WEBSOCKET
+============================== */
+
+function connect() {
+
+    if (
+        ws &&
+        (
+            ws.readyState === WebSocket.OPEN ||
+            ws.readyState === WebSocket.CONNECTING
+        )
+    ) {
+        return;
+    }
+
+    try {
+
+        const protocol =
+            window.location.protocol === 'https:'
+                ? 'wss:'
+                : 'ws:';
+
+        const wsUrl =
+            protocol + '//' + window.location.host;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = function() {
+
+            reconnectAttempts = 0;
+
+            setConnectionStatus(true);
+
+            sendJoin();
+
+            addSystemMessage(
+                'Conectado ao MATRIX CHAT'
+            );
+        };
+
+        ws.onmessage = function(event) {
+
+            try {
+
+                const data =
+                    JSON.parse(event.data);
+
+                handleMessage(data);
+
+            } catch (error) {
+
+                console.error(
+                    'Mensagem inválida:',
+                    error
+                );
+
+            }
+        };
+
+        ws.onerror = function(error) {
+
+            console.error(
+                'WebSocket error:',
+                error
+            );
+
+        };
+
+        ws.onclose = function() {
+
+            setConnectionStatus(false);
+
+            ws = null;
+
+            scheduleReconnect();
+        };
+
+    } catch (error) {
+
+        console.error(
+            'Erro ao conectar:',
+            error
+        );
+
+        setConnectionStatus(false);
+
+        scheduleReconnect();
+    }
+}
+
+/* ==============================
+   RECONEXÃO
+============================== */
+
+function scheduleReconnect() {
+
+    if (reconnectTimer) {
+        return;
+    }
+
+    const delay =
+        Math.min(
+            1000 * Math.pow(2, reconnectAttempts),
+            MAX_RECONNECT_DELAY
+        );
+
+    reconnectAttempts++;
+
+    reconnectTimer = setTimeout(
+        function() {
+
+            reconnectTimer = null;
+
+            connect();
+
+        },
+        delay
+    );
+}
+
+/* ==============================
+   ENTRAR NA SALA
+============================== */
+
+function sendJoin() {
+
+    if (
+        !ws ||
+        ws.readyState !== WebSocket.OPEN
+    ) {
+        return;
+    }
+
+    ws.send(
+        JSON.stringify({
+            type: 'chat_join',
+            room: currentRoom,
+            username: username
+        })
+    );
+}
+
+function joinRoom(room, button) {
+
+    if (!roomNames[room]) {
+        return;
+    }
+
+    currentRoom = room;
+
+    document
+        .querySelectorAll('.room-btn')
+        .forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+
+    if (button) {
+        button.classList.add('active');
+    }
+
+    currentRoomName.textContent =
+        roomNames[room];
+
+    onlineCount.textContent =
+        '0 online';
+
+    clearMessages();
+
+    if (
+        ws &&
+        ws.readyState === WebSocket.OPEN
+    ) {
+
+        ws.send(
+            JSON.stringify({
+                type: 'chat_join',
+                room: currentRoom,
+                username: username
+            })
+        );
+
+    } else {
+
+        connect();
+    }
+}
+
+/* ==============================
+   ENVIO
+============================== */
+
+function sendMessage() {
+
+    const text =
+        chatInput.value.trim();
+
+    if (!text) {
+        return;
+    }
+
+    if (
+        !ws ||
+        ws.readyState !== WebSocket.OPEN
+    ) {
+
+        addSystemMessage(
+            'Sem conexão com o servidor.'
+        );
+
+        connect();
+
+        return;
+    }
+
+    ws.send(
+        JSON.stringify({
+            type: 'chat_message',
+            room: currentRoom,
+            username: username,
+            text: text
+        })
+    );
+
+    chatInput.value = '';
+
+    chatInput.focus();
+}
+
+/* ==============================
+   RECEBER MENSAGENS
+============================== */
+
+function handleMessage(data) {
+
+    if (!data || !data.type) {
+        return;
+    }
+
+    if (data.type === 'chat_message') {
+
+        if (
+            data.room &&
+            data.room !== currentRoom
+        ) {
+            return;
+        }
+
+        addMessage(data);
+    }
+
+    if (data.type === 'chat_online') {
+
+        updateOnlineCount(
+            data.room,
+            data.count
+        );
+    }
+}
+
+/* ==============================
+   CONTADOR ONLINE
+============================== */
+
+function updateOnlineCount(room, count) {
+
+    const value =
+        Number.isFinite(Number(count))
+            ? Number(count)
+            : 0;
+
+    if (room) {
+
+        const element =
+            document.getElementById(
+                'online-' + room
+            );
+
+        if (element) {
+
+            element.textContent =
+                value + ' online';
+        }
+    }
+
+    if (
+        !room ||
+        room === currentRoom
+    ) {
+
+        onlineCount.textContent =
+            value + ' online';
+    }
+}
+
+/* ==============================
+   LIMPAR CHAT
+============================== */
+
+function clearMessages() {
+
+    messagesArea.innerHTML = '';
+
+    const empty =
+        document.createElement('div');
+
+    empty.className = 'empty-chat';
+
+    empty.id = 'emptyChat';
+
+    empty.innerHTML =
+        '[ ' +
+        roomNames[currentRoom] +
+        ' ]<br>Aguardando mensagens...';
+
+    messagesArea.appendChild(empty);
+}
+
+/* ==============================
+   MENSAGEM DO SISTEMA
+============================== */
+
+function addSystemMessage(text) {
+
+    if (!messagesArea) {
+        return;
+    }
+
+    if (emptyChat) {
+        emptyChat.remove();
+    }
+
+    const element =
+        document.createElement('div');
+
+    element.className =
+        'system-message';
+
+    element.textContent = text;
+
+    messagesArea.appendChild(element);
+
+    scrollToBottom();
+}
+
+/* ==============================
+   ADICIONAR MENSAGEM
+============================== */
+
+function addMessage(data) {
+
+    if (!messagesArea) {
+        return;
+    }
+
+    if (emptyChat) {
+        emptyChat.remove();
+    }
+
+    const message =
+        document.createElement('div');
+
+    message.className =
+        'message ' +
+        (
+            data.username === username
+                ? 'mine'
+                : 'other'
+        );
+
+    /* AUTOR */
+
+    const author =
+        document.createElement('div');
+
+    author.className =
+        'msg-author';
+
+    author.textContent =
+        data.username || 'UNKNOWN';
+
+    /* TEXTO */
+
+    const text =
+        document.createElement('div');
+
+    text.className =
+        'msg-text';
+
+    /* textContent evita HTML malicioso */
+
+    text.textContent =
+        data.text || '';
+
+    /* HORA */
+
+    const time =
+        document.createElement('div');
+
+    time.className =
+        'msg-time';
+
+    time.textContent =
+        formatTime(
+            data.timestamp ||
+            Date.now()
+        );
+
+    message.appendChild(author);
+
+    message.appendChild(text);
+
+    message.appendChild(time);
+
+    messagesArea.appendChild(message);
+
+    scrollToBottom();
+}
+
+/* ==============================
+   HORA
+============================== */
+
+function formatTime(timestamp) {
+
+    const date =
+        new Date(timestamp);
+
+    if (Number.isNaN(date.getTime())) {
+
+        return new Date()
+            .toLocaleTimeString(
+                'pt-BR',
+                {
+                    hour:'2-digit',
+                    minute:'2-digit'
+                }
+            );
+    }
+
+    return date.toLocaleTimeString(
+        'pt-BR',
+        {
+            hour:'2-digit',
+            minute:'2-digit'
+        }
+    );
+}
+
+/* ==============================
+   SCROLL
+============================== */
+
+function scrollToBottom() {
+
+    requestAnimationFrame(
+        function() {
+
+            messagesArea.scrollTop =
+                messagesArea.scrollHeight;
+
+        }
+    );
+}
+
+/* ==============================
+   ENTER
+============================== */
+
+chatInput.addEventListener(
+    'keydown',
+    function(event) {
+
+        if (
+            event.key === 'Enter' &&
+            !event.shiftKey
+        ) {
+
+            event.preventDefault();
+
+            sendMessage();
+        }
+    }
+);
+
+/* ==============================
+   VISIBILIDADE
+============================== */
+
+document.addEventListener(
+    'visibilitychange',
+    function() {
+
+        if (
+            document.visibilityState ===
+            'visible'
+        ) {
+
+            if (
+                !ws ||
+                ws.readyState !== WebSocket.OPEN
+            ) {
+
+                connect();
+            }
+        }
+    }
+);
+
+/* ==============================
+   VOLTAR
+============================== */
+
+function goBack() {
+
+    if (
+        document.referrer &&
+        document.referrer.startsWith(
+            window.location.origin
+        )
+    ) {
+
+        history.back();
+
+    } else {
+
+        window.location.href =
+            '/index.html';
+    }
+}
+
+/* ==============================
+   START
+============================== */
+
+clearMessages();
+
+connect();
+
+</script>
+
+</body>
+</html>

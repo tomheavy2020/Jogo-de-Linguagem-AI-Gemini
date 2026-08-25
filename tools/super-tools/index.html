@@ -1,0 +1,21 @@
+<div class="tools-stage">
+  <div class="tools-tabs">
+    <button class="tools-tab active" data-tool="compass">🧭 BÚSSOLA</button>
+    <button class="tools-tab" data-tool="flashlight">🔦 LANTERNA</button>
+    <button class="tools-tab" data-tool="level">📐 NÍVEL</button>
+  </div>
+  <div class="tools-panel active" id="panel-compass">
+    <div class="compass-box"><div class="compass-needle" id="compass-needle"></div></div>
+    <p id="compass-degrees" style="text-align:center; color:#fff; font-size:24px;">0° N</p>
+  </div>
+  <div class="tools-panel" id="panel-flashlight" style="display:none;">
+    <button id="flash-btn" class="flash-btn">LIGAR</button>
+    <p style="color:#aaa; font-size:12px; text-align:center;">Toque para ativar o flash do celular</p>
+  </div>
+  <div class="tools-panel" id="panel-level" style="display:none;">
+    <div class="level-box">
+      <div class="level-bubble" id="level-bubble"></div>
+    </div>
+    <p id="level-status" style="text-align:center; color:#aaa; font-size:14px;">Nivelando...</p>
+  </div>
+</div>

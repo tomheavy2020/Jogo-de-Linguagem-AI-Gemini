@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matrix Arcade - Duck Hunt</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            display: flex; justify-content: center; align-items: center;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* 🔥 MÁQUINA DE FLIPERAMA PREMIUM (Bordas Brilhantes) */
+        .cabinet {
+            position: relative;
+            width: 85vw;
+            max-width: 500px;
+            height: 90vh;
+            max-height: 700px;
+            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+            border: 3px solid #ffaa00;
+            border-radius: 25px 25px 15px 15px;
+            box-shadow: 0 0 40px rgba(255, 170, 0, 0.4), inset 0 0 30px rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            display: flex; flex-direction: column;
+        }
+
+        .cabinet-top {
+            width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 10px; margin-bottom: 10px;
+            border-bottom: 2px solid #ffaa00;
+        }
+        .cabinet-top span {
+            color: #ffaa00; font-size: 14px; font-weight: bold;
+            text-shadow: 0 0 15px #ffaa00; letter-spacing: 1px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .cabinet-top button {
+            background: #ff0040; border: none; color: #fff; padding: 4px 15px;
+            border-radius: 5px; font-weight: bold; cursor: pointer; font-family: inherit;
+            box-shadow: 0 0 15px #ff0040;
+        }
+
+        /* 🔥 TELA CRT PREMIUM */
+        .screen {
+            flex: 1;
+            background: #000;
+            border: 6px solid #222;
+            border-radius: 12px;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 255, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+        }
+
+        #gameCanvas {
+            width: 100%; height: 100%; display: block;
+            cursor: crosshair;
+            background: #5E9EFF;
+        }
+
+        /* 🔥 CONTROLES PREMIUM (Neon Brilhante) */
+        .controls {
+            display: flex; justify-content: center; gap: 20px;
+            padding-top: 15px; margin-top: 15px;
+            border-top: 2px solid #ffaa00;
+        }
+
+        .arcade-btn {
+            border: none; color: #000; font-weight: bold;
+            padding: 12px 0; border-radius: 30px; font-size: 14px; font-family: inherit;
+            cursor: pointer; flex: 1; max-width: 150px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* Botão Iniciar (Neon Verde) */
+        .arcade-btn.start {
+            background: #00ff00;
+            box-shadow: 0 0 20px #00ff00, inset 0 0 10px rgba(255,255,255,0.3);
+            transition: 0.2s;
+        }
+        .arcade-btn.start:active { transform: scale(0.95); background: #00cc00; }
+
+        /* Botão Arena (Neon Vermelho) */
+        .arcade-btn.arena {
+            background: #ff0040;
+            box-shadow: 0 0 20px #ff0040, inset 0 0 10px rgba(255,255,255,0.3);
+            transition: 0.2s;
+            color: #fff;
+        }
+        .arcade-btn.arena:active { transform: scale(0.95); background: #cc0033; }
+
+        #statusMsg {
+            color: #fff; font-size: 11px; text-align: center;
+            margin-top: 8px; background: rgba(0,0,0,0.6);
+            padding: 4px 10px; border-radius: 15px;
+            border: 1px solid #ffaa00;
+        }
+
+        @media (max-width: 500px) {
+            .cabinet { padding: 10px; width: 95vw; }
+            .arcade-btn { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cabinet">
+        <div class="cabinet-top">
+            <span>🦆 MATRIX ARCADE</span>
+            <button onclick="window.location.href='/index.html'">✕ DESLIGAR</button>
+        </div>
+
+        <div class="screen">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+
+        <div class="controls">
+            <button class="arcade-btn start" id="actionBtn" onclick="startGame()">🎯 INICIAR</button>
+            <button class="arcade-btn arena" onclick="window.location.href='/arena.html'">⚔️ ARENA</button>
+        </div>
+        <div id="statusMsg">Pressione INICIAR para jogar</div>
+    </div>
+
+    <script src="/game-points.js"></script>
+<script>
+        // 🔥 MOTOR DE ÁUDIO
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+
+            if (type === 'shot') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'duck_fall') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'laugh') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(600, audioCtx.currentTime); osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.2); osc.frequency.setValueAtTime(900, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            }
+        }
+
+        // 🔥 CONFIGURAÇÃO
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const actionBtn = document.getElementById('actionBtn');
+        const statusMsg = document.getElementById('statusMsg');
+
+        canvas.width = 800; canvas.height = 600;
+
+        // 🔥 SPRITES DE PIXEL ART (CACHORRO E PATO)
+        // Cachorro: Matriz de cores em pixels (Tamanho 32x32)
+        const DOG_SPRITE = [
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000777777777700000000000000",
+            "00000000777777777700000000000000",
+            "00000000771111117700000000000000",
+            "00000000771111117700000000000000",
+            "00000000771111117700000000000000",
+            "00000000777777777700000000000000",
+            "00000000077777777700000000000000",
+            "00000000677777777600000000000000",
+            "00000000660000006600000000000000",
+            "00000000660000006600000000000000",
+            "00000000770000007700000000000000",
+            "00000000771111117700000000000000",
+            "00000000771111117700000000000000",
+            "00000000770000007700000000000000",
+            "00000000770000007700000000000000",
+            "00000000770000007700000000000000",
+            "00000000077777777700000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000"
+        ];
+
+        const DUCK_SPRITE = [
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000333333330000000000",
+            "00000000000000333333330000000000",
+            "00000000000000333333330000000000",
+            "00000000000000333333330000000000",
+            "00000000000022223333330000000000",
+            "00000000000022223333330000000000",
+            "00000000000222222222220000000000",
+            "00000000000222222222220000000000",
+            "00000000002222222222220000000000",
+            "00000000002222222222220000000000",
+            "00000000222222222222220000000000",
+            "00000000222222222222220000000000",
+            "00000000222222222222220000000000",
+            "00000000022222222222220000000000",
+            "00000000002222222222220000000000",
+            "00000000002222222222220000000000",
+            "00000000000222222222220000000000",
+            "00000000000222222222220000000000",
+            "00000000000022223333330000000000",
+            "00000000000022223333330000000000",
+            "00000000000000333333330000000000",
+            "00000000000000333333330000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000",
+            "00000000000000000000000000000000"
+        ];
+
+        // Mapeamento de cores: 0=Transparente, 7=Marrom, 1=Bege, 6=Preto, 3=Verde, 2=Verde claro
+        const COLOR_MAP = {
+            '7': '#8B4513', // Marrom Dog
+            '1': '#DEB887', // Bege Dog
+            '6': '#000000', // Preto
+            '3': '#2E8B57', // Verde Pato
+            '2': '#3CB371'  // Verde claro Pato
+        };
+
+        function drawPixelSprite(x, y, spriteData, scale=4) {
+            for(let row=0; row<32; row++) {
+                for(let col=0; col<32; col++) {
+                    const char = spriteData[row][col];
+                    if(char !== '0') {
+                        ctx.fillStyle = COLOR_MAP[char] || '#fff';
+                        ctx.fillRect(x + (col*scale), y + (row*scale), scale, scale);
+                    }
+                }
+            }
+        }
+
+        // 🔥 VARIÁVEIS
+        let score = 0, round = 1, shotCount = 0, maxShots = 3, isRoundActive = false;
+        let ducks = [];
+        let dog = { x: 400, y: 520, state: 'idle', pickupTimer: 0 };
+        let isDogPickingUp = false;
+
+        class Duck {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * 600 + 100;
+                this.y = Math.random() * 150 + 50;
+                this.vx = (Math.random() * 2 + 2) * (Math.random() > 0.5 ? 1 : -1);
+                this.vy = (Math.random() * 1 + 1) * (Math.random() > 0.5 ? 1 : -1);
+                this.alive = true; this.falling = false; this.speed = 2.5 + (round * 0.3);
+                this.fallY = 0;
+            }
+            update() {
+                if (!this.alive && !this.falling) return;
+                if (this.falling) {
+                    this.fallY += 6;
+                    if (this.fallY > 600) { this.alive = false; this.falling = false; }
+                    return;
+                }
+                this.x += this.vx * this.speed; this.y += this.vy * this.speed;
+                if (this.x < 0 || this.x > 750) this.vx *= -1;
+                if (this.y < 20) this.vy = Math.abs(this.vy);
+                if (this.y > 300) this.vy = -Math.abs(this.vy);
+            }
+            draw() {
+                if (!this.alive && !this.falling) return;
+                ctx.save();
+                let drawX = this.x, drawY = this.y;
+                if (this.falling) { drawY += this.fallY; }
+                if (this.vx < 0) { ctx.scale(-1, 1); drawX = -drawX - 128; }
+                drawPixelSprite(drawX, drawY, DUCK_SPRITE, 3);
+                ctx.restore();
+            }
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#5E9EFF'; ctx.fillRect(0, 0, 800, 400);
+            ctx.fillStyle = '#7CCD7C'; ctx.fillRect(0, 400, 800, 200);
+            ctx.fillStyle = '#8B5A2B'; ctx.fillRect(0, 550, 800, 50);
+        }
+
+        function drawDog() {
+            if (dog.state === 'pickup') {
+                drawPixelSprite(350, 500, DOG_SPRITE, 5);
+            } else if (dog.state === 'laugh') {
+                drawPixelSprite(350, 500, DOG_SPRITE, 5);
+                ctx.fillStyle = '#ff0000'; ctx.font = 'bold 24px Courier New';
+                ctx.fillText('😂', 420, 480);
+            } else {
+                // Cachorro parado (Idle)
+                drawPixelSprite(350, 500, DOG_SPRITE, 5);
+            }
+        }
+
+        window.startGame = function() {
+            if (isRoundActive) return;
+            audioCtx.resume();
+            actionBtn.innerText = "⚔️ JOGANDO...";
+            statusMsg.innerText = "🎯 Atire no pato! (3 tiros)";
+            isRoundActive = true; shotCount = 0; dog.state = 'idle'; ducks = [];
+            for (let i = 0; i < (round === 1 ? 1 : 2); i++) { ducks.push(new Duck()); }
+        };
+
+        canvas.addEventListener('click', (e) => {
+            if (!isRoundActive || shotCount >= maxShots) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            playSound('shot'); shotCount++; statusMsg.innerText = `🎯 Tiros: ${maxShots - shotCount}`;
+            let hit = false;
+
+            ducks.forEach(duck => {
+                if (duck.alive && !duck.falling) {
+                    if (Math.hypot(x - duck.x, y - duck.y) < 35) {
+                        hit = true; duck.alive = false; duck.falling = true; score += 10;
+                        dog.state = 'pickup'; playSound('duck_fall');
+                        setTimeout(() => { dog.state = 'idle'; }, 1500);
+                    }
+                }
+            });
+
+            if (!hit && shotCount >= maxShots) {
+                isRoundActive = false; dog.state = 'laugh'; playSound('laugh');
+                statusMsg.innerText = "😂 Cachorro ri de você!";
+                actionBtn.innerText = "🔄 TENTAR NOVO";
+                setTimeout(() => { dog.state = 'idle'; }, 2500);
+            } else if (hit && ducks.every(d => !d.alive)) {
+                isRoundActive = false; round++; playSound('duck_fall');
+                statusMsg.innerText = `🎉 RODADA ${round-1} CONCLUÍDA!`;
+                actionBtn.innerText = `▶️ RODADA ${round}`;
+            } else if (shotCount >= maxShots) {
+                isRoundActive = false;
+                statusMsg.innerText = "💨 Acabou a munição!";
+                actionBtn.innerText = "🔄 TENTAR NOVO";
+            }
+        });
+
+        // 🔥 LOOP
+        function gameLoop() {
+            drawBackground();
+            ducks.forEach(d => { d.update(); d.draw(); });
+            drawDog();
+
+            ctx.fillStyle = '#000'; ctx.fillRect(10, 10, 120, 50);
+            ctx.fillStyle = '#00ff00'; ctx.font = 'bold 16px Courier New';
+            ctx.fillText(`SCORE: ${score}`, 15, 30);
+            ctx.fillStyle = '#fff'; ctx.fillText(`R: ${round}`, 15, 50);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.04)';
+            for(let i=0; i<600; i+=4) { ctx.fillRect(0, i, 800, 1); }
+
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>

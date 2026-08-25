@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Matrix AR - Satellite Hunter</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: radial-gradient(ellipse at 50% 0%, #0a1a12 0%, #030503 60%, #000 100%);
+            color: #00ff88; font-family: 'Courier New', monospace;
+            overflow: hidden; height: 100dvh; width: 100vw; position: fixed;
+            -webkit-tap-highlight-color: transparent; user-select: none;
+        }
+
+        /* 🔥 CAMADA DA CÂMERA */
+        #cameraView {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; background: #000; z-index: 0;
+        }
+
+        /* Tela de permissão inicial */
+        .permission-gate {
+            position: absolute; inset: 0; z-index: 100;
+            background: radial-gradient(ellipse at 50% 30%, #08150c 0%, #000 75%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 22px; text-align: center; padding: 36px;
+        }
+        .permission-gate.hidden { display: none; }
+        .permission-gate .sat-icon {
+            font-size: 84px; filter: drop-shadow(0 0 28px #00ffff);
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .permission-gate h2 {
+            color: #00ffff; font-size: 26px; letter-spacing: 2px;
+            text-shadow: 0 0 14px #00ffff; font-weight: 800;
+        }
+        .permission-gate p {
+            color: rgba(255,255,255,0.75); font-size: 16px; max-width: 340px; line-height: 1.7;
+        }
+        .permission-gate button {
+            margin-top: 12px; padding: 20px 40px; border: 2px solid #00ffff; border-radius: 40px;
+            background: linear-gradient(135deg, rgba(0,255,255,0.15), rgba(0,255,150,0.08));
+            color: #00ffff; font-family: inherit; font-weight: bold;
+            font-size: 18px; letter-spacing: 1px; cursor: pointer;
+            box-shadow: 0 0 24px rgba(0,255,255,0.25), inset 0 0 12px rgba(0,255,255,0.1);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .permission-gate button:active { background: #00ffff; color: #000; }
+        .permission-gate .err { color: #ff5577; font-size: 15px; min-height: 20px; font-weight: bold; }
+
+        /* 🔥 HUD DE REALIDADE AUMENTADA */
+        .ar-hud {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+            pointer-events: none; overflow: hidden;
+        }
+
+        .header {
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 20;
+            background: linear-gradient(180deg, rgba(0,10,5,0.85), rgba(0,10,5,0.55));
+            backdrop-filter: blur(10px);
+            padding: 18px 20px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(0,255,255,0.5); pointer-events: auto;
+            box-shadow: 0 2px 20px rgba(0,255,255,0.15);
+        }
+        .header h1 {
+            font-size: 20px; color: #00ffff; text-shadow: 0 0 12px #00ffff;
+            display: flex; align-items: center; gap: 10px; letter-spacing: 1px; font-weight: 800;
+        }
+        .header button {
+            background: rgba(255,59,59,0.1); border: 2px solid #ff3b3b; color: #ff3b3b;
+            padding: 10px 20px; border-radius: 14px; cursor: pointer; font-family: inherit;
+            font-size: 15px; font-weight: bold; pointer-events: auto;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .header button:active { background: #ff3b3b; color: #000; }
+
+        /* 🔥 ALVO DO SATÉLITE */
+        .sat-target {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 58px; color: #00ffff; text-shadow: 0 0 34px #00ffff, 0 0 68px #00ffff;
+            opacity: 0; transition: opacity 0.25s ease, top 0.15s linear, left 0.15s linear;
+            pointer-events: none; filter: drop-shadow(0 0 18px rgba(0, 255, 255, 0.6));
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .sat-target .label {
+            font-size: 15px; color: #fff; text-shadow: 0 0 8px #00ffff; font-weight: bold;
+            background: rgba(0,10,5,0.75); padding: 5px 14px; border-radius: 12px; margin-top: 6px;
+            white-space: nowrap; border: 1px solid rgba(0,255,255,0.4);
+        }
+        .sat-target.visible { opacity: 0.8; }
+        .sat-target.found { opacity: 1; animation: pulse-target 1.2s infinite; }
+        @keyframes pulse-target {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.3); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Mira central */
+        .crosshair {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 40px; height: 40px; z-index: 12; pointer-events: none;
+        }
+        .crosshair::before, .crosshair::after {
+            content: ''; position: absolute; background: rgba(0,255,140,0.65);
+            box-shadow: 0 0 6px rgba(0,255,140,0.5);
+        }
+        .crosshair::before { top: 50%; left: 0; width: 100%; height: 2px; }
+        .crosshair::after { left: 50%; top: 0; height: 100%; width: 2px; }
+
+        /* 🔥 CONTROLES INFERIORES */
+        .ar-controls {
+            position: absolute; bottom: 28px; left: 0; width: 100%; z-index: 20;
+            display: flex; justify-content: center; gap: 16px; pointer-events: auto;
+            padding: 0 90px;
+        }
+        .ar-btn {
+            flex: 1; padding: 16px 14px; border: 2px solid #00ffff; border-radius: 40px;
+            background: linear-gradient(135deg, rgba(0,20,15,0.85), rgba(0,10,10,0.85));
+            color: #00ffff; font-family: inherit; font-weight: bold;
+            font-size: 15px; backdrop-filter: blur(6px); cursor: pointer;
+            box-shadow: 0 0 16px rgba(0,255,255,0.2);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .ar-btn:active { background: #00ffff; color: #000; }
+
+        .ar-info {
+            position: absolute; bottom: 96px; left: 50%; transform: translateX(-50%);
+            z-index: 20; background: linear-gradient(135deg, rgba(0,15,10,0.85), rgba(0,5,5,0.85));
+            border: 1px solid rgba(0,255,255,0.5);
+            padding: 14px 22px; border-radius: 20px; text-align: center; color: #eafff5;
+            backdrop-filter: blur(8px); font-size: 15px; pointer-events: none;
+            width: 90%; max-width: 440px; line-height: 1.6;
+            box-shadow: 0 0 20px rgba(0,255,255,0.12);
+        }
+        .ar-info .highlight { color: #00ffff; font-weight: bold; }
+
+        /* Mini-radar */
+        .mini-radar {
+            position: absolute; top: 90px; right: 16px; z-index: 20;
+            width: 100px; height: 100px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,20,15,0.7), rgba(0,5,5,0.85));
+            border: 2px solid rgba(0,255,255,0.5);
+            backdrop-filter: blur(6px); pointer-events: none;
+            box-shadow: 0 0 18px rgba(0,255,255,0.15);
+        }
+        .mini-radar .dot-you {
+            position: absolute; top: 50%; left: 50%; width: 9px; height: 9px;
+            background: #00ff41; border-radius: 50%; transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #00ff41;
+        }
+        .mini-radar .dot-sat {
+            position: absolute; width: 12px; height: 12px; background: #00ffff; border-radius: 50%;
+            box-shadow: 0 0 12px #00ffff; transition: top 0.2s linear, left 0.2s linear, opacity 0.2s;
+            opacity: 0;
+        }
+        .mini-radar .n-label {
+            position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+            font-size: 11px; color: rgba(0,255,65,0.85); font-weight: bold;
+        }
+
+        .guide-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            color: #ffaa00; font-size: 42px; opacity: 0; z-index: 15; text-shadow: 0 0 18px #ffaa00;
+            transition: opacity 0.3s;
+        }
+        .guide-arrow.left { left: 20px; transform: translateY(-50%) rotate(180deg); }
+        .guide-arrow.right { right: 20px; transform: translateY(-50%) rotate(0deg); }
+
+        /* Rastro de trajetória */
+        .trail-dot {
+            position: absolute; width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(0,255,255,0.6); box-shadow: 0 0 7px rgba(0,255,255,0.7);
+            transform: translate(-50%, -50%); z-index: 9; pointer-events: none;
+        }
+
+        /* Painel de distância/altitude */
+        .sat-stats {
+            position: absolute; top: 90px; left: 16px; z-index: 20;
+            background: linear-gradient(135deg, rgba(0,20,15,0.75), rgba(0,5,5,0.85));
+            border: 1px solid rgba(0,255,255,0.5);
+            border-radius: 16px; padding: 12px 18px; font-size: 15px; color: #00ffff;
+            backdrop-filter: blur(6px); line-height: 1.7; pointer-events: none; font-weight: bold;
+            box-shadow: 0 0 16px rgba(0,255,255,0.15);
+        }
+
+        /* Botão flutuante de captura */
+        .capture-btn {
+            position: absolute; bottom: 26px; left: 18px; z-index: 20;
+            width: 62px; height: 62px; border-radius: 50%;
+            background: linear-gradient(135deg, rgba(0,25,10,0.9), rgba(0,10,5,0.9));
+            border: 2px solid #00ff41; color: #00ff41;
+            font-size: 26px; display: flex; align-items: center; justify-content: center;
+            pointer-events: auto; cursor: pointer;
+            box-shadow: 0 0 18px rgba(0,255,65,0.3);
+        }
+        .capture-btn:active { background: #00ff41; color: #000; }
+
+        /* Botão de próximas passagens */
+        .passes-btn {
+            position: absolute; bottom: 26px; right: 18px; z-index: 20;
+            width: 62px; height: 62px; border-radius: 50%;
+            background: linear-gradient(135deg, rgba(30,20,0,0.9), rgba(10,8,0,0.9));
+            border: 2px solid #ffb000; color: #ffb000;
+            font-size: 26px; display: flex; align-items: center; justify-content: center;
+            pointer-events: auto; cursor: pointer;
+            box-shadow: 0 0 18px rgba(255,176,0,0.3);
+        }
+        .passes-btn:active { background: #ffb000; color: #000; }
+
+        /* Painel de próximas passagens */
+        .passes-panel {
+            position: fixed; inset: 0; z-index: 90;
+            background: radial-gradient(ellipse at 50% 0%, #08150c 0%, #000 80%);
+            display: none; flex-direction: column; padding: 26px; overflow-y: auto;
+        }
+        .passes-panel.open { display: flex; }
+        .passes-panel h3 {
+            color: #ffb000; font-size: 20px; margin-bottom: 20px; text-shadow: 0 0 10px #ffb000;
+            display: flex; align-items: center; gap: 10px; letter-spacing: 1px;
+        }
+        .pass-item {
+            border: 1px solid rgba(0,255,65,0.4); border-radius: 16px; padding: 16px 20px;
+            margin-bottom: 14px; font-size: 15px; color: #d7ffe8;
+            background: linear-gradient(135deg, rgba(0,255,65,0.06), rgba(0,255,65,0.02));
+            line-height: 1.6; box-shadow: 0 0 12px rgba(0,255,65,0.08);
+        }
+        .pass-item b { color: #00ff41; font-size: 16px; }
+        .passes-panel .close-passes {
+            margin-top: auto; padding: 18px; border: 2px solid #ff3b3b; color: #ff3b3b;
+            background: rgba(255,59,59,0.08); border-radius: 16px; font-family: inherit;
+            font-size: 16px; font-weight: bold; display: flex; align-items: center;
+            justify-content: center; gap: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .sat-target { font-size: 46px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 🔥 GATE DE PERMISSÃO -->
+    <div class="permission-gate" id="permGate">
+        <div class="sat-icon">🛰️</div>
+        <h2>AR SATELLITE HUNTER</h2>
+        <p>Este recurso usa sua <b>câmera</b>, <b>localização</b> e os <b>sensores de movimento</b> do celular para
+        mostrar satélites reais no céu, na direção exata em que você está apontando o aparelho.</p>
+        <button id="startBtn">🔭 ATIVAR CÂMERA E SENSORES</button>
+        <div class="err" id="permErr"></div>
+    </div>
+
+    <!-- 🔥 CÂMERA E HUD -->
+    <video id="cameraView" autoplay playsinline muted></video>
+
+    <div class="header">
+        <h1><span style="color:#00ffff;">🛰️</span> AR SATELLITE HUNTER</h1>
+        <button onclick="stopAndExit()">✕ Fechar</button>
+    </div>
+
+    <div class="ar-hud">
+        <div class="crosshair"></div>
+        <div class="sat-target" id="satMarker">
+            🛰️
+            <span class="label" id="satLabel">ISS</span>
+        </div>
+        <div class="guide-arrow left" id="guideArrowL">▶</div>
+        <div class="guide-arrow right" id="guideArrowR">▶</div>
+    </div>
+
+    <div class="mini-radar" id="miniRadar">
+        <span class="n-label">N</span>
+        <div class="dot-you"></div>
+        <div class="dot-sat" id="radarSatDot"></div>
+    </div>
+
+    <div class="sat-stats" id="satStats">
+        ALT: -- km<br>DIST: -- km
+    </div>
+
+    <div class="ar-info" id="arInfo">
+        Aponte a câmera para o céu e aguarde...<br>
+        <span class="highlight" id="satName">ISS</span> | <span id="satStatus">Buscando...</span>
+    </div>
+
+    <button class="capture-btn" onclick="capturePhoto()" title="Capturar">📸</button>
+    <button class="passes-btn" onclick="showUpcomingPasses()" title="Próximas passagens">📋</button>
+
+    <div class="ar-controls">
+        <button class="ar-btn" onclick="selectSatellite()">🛰️ TROCAR SATÉLITE</button>
+        <button class="ar-btn" onclick="recenter()">🎯 RECALIBRAR</button>
+    </div>
+
+    <div class="passes-panel" id="passesPanel">
+        <h3>📋 PRÓXIMAS PASSAGENS VISÍVEIS</h3>
+        <div id="passesList">Carregando...</div>
+        <button class="close-passes" onclick="closePasses()">✕ FECHAR</button>
+    </div>
+
+    <canvas id="captureCanvas" style="display:none;"></canvas>
+
+    <script>
+        // =====================================================
+        // CONFIG
+        // =====================================================
+        const N2YO_API_KEY = "B6GHQ6-XG2J4X-BK77S4-4NZ9";
+        const USE_OWN_BACKEND = true;
+        const BACKEND_ENDPOINT = "/api/satpos";
+
+        const CAMERA_FOV_H = 60;
+        const CAMERA_FOV_V = 45;
+        const REFRESH_MS = 8000;
+
+        // =====================================================
+        // ESTADO
+        // =====================================================
+        let userLat = null, userLng = null;
+        let currentSatId = 25544;
+        let currentSatName = "ISS (Estação Espacial)";
+        let lastPos = null;
+        let compassOffset = 0;
+        let trackingLoopRunning = false;
+
+        const video = document.getElementById('cameraView');
+        const marker = document.getElementById('satMarker');
+        const satLabel = document.getElementById('satLabel');
+        const arInfo = document.getElementById('arInfo');
+        const satName = document.getElementById('satName');
+        const satStatus = document.getElementById('satStatus');
+        const guideArrowL = document.getElementById('guideArrowL');
+        const guideArrowR = document.getElementById('guideArrowR');
+        const permGate = document.getElementById('permGate');
+        const permErr = document.getElementById('permErr');
+        const radarSatDot = document.getElementById('radarSatDot');
+        const satStats = document.getElementById('satStats');
+        const arHud = document.querySelector('.ar-hud');
+        const passesPanel = document.getElementById('passesPanel');
+        const passesList = document.getElementById('passesList');
+
+        let alreadyFoundBeep = false;
+        let audioCtx = null;
+        let trailDots = [];
+
+        // =====================================================
+        // 1. GATE
+        // =====================================================
+        document.getElementById('startBtn').addEventListener('click', startExperience);
+
+        async function startExperience() {
+            permErr.textContent = '';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' } },
+                    audio: false
+                });
+                video.srcObject = stream;
+                await video.play();
+            } catch (err) {
+                permErr.textContent = 'Não foi possível acessar a câmera. Verifique as permissões do navegador.';
+                return;
+            }
+
+            try {
+                if (typeof DeviceOrientationEvent !== 'undefined' &&
+                    typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const resp = await DeviceOrientationEvent.requestPermission();
+                    if (resp !== 'granted') {
+                        permErr.textContent = 'Permissão de sensores de movimento negada.';
+                        return;
+                    }
+                }
+            } catch (e) {}
+
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition((pos) => {
+                    userLat = pos.coords.latitude;
+                    userLng = pos.coords.longitude;
+                    satStatus.textContent = "GPS adquirido. Rastreando...";
+                }, () => {
+                    satStatus.textContent = "GPS negado — usando última posição conhecida.";
+                }, { enableHighAccuracy: true, maximumAge: 5000 });
+            }
+
+            attachOrientationListeners();
+            permGate.classList.add('hidden');
+
+            if (!trackingLoopRunning) {
+                trackingLoopRunning = true;
+                requestAnimationFrame(trackingLoop);
+                scheduleSatelliteFetch();
+            }
+        }
+
+        // =====================================================
+        // 2. SENSORES DE ORIENTAÇÃO
+        // =====================================================
+        let currentHeading = 0;
+        let currentPitch = 0;
+
+        function attachOrientationListeners() {
+            const handler = (event) => {
+                if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+                    currentHeading = event.webkitCompassHeading;
+                } else if (event.absolute && event.alpha !== null) {
+                    currentHeading = 360 - event.alpha;
+                } else if (event.alpha !== null) {
+                    currentHeading = (360 - event.alpha + compassOffset) % 360;
+                }
+
+                if (event.beta !== null) {
+                    currentPitch = event.beta - 90;
+                }
+            };
+
+            if ('ondeviceorientationabsolute' in window) {
+                window.addEventListener('deviceorientationabsolute', handler, true);
+            } else {
+                window.addEventListener('deviceorientation', handler, true);
+            }
+        }
+
+        function recenter() {
+            compassOffset = 0;
+            satStatus.textContent = "Recalibrado.";
+        }
+
+        // =====================================================
+        // 3. BUSCAR POSIÇÃO DO SATÉLITE
+        // =====================================================
+        async function fetchSatelliteData() {
+            if (userLat === null || userLng === null) return null;
+
+            const url = USE_OWN_BACKEND
+                ? `${BACKEND_ENDPOINT}?satid=${currentSatId}&lat=${userLat}&lng=${userLng}`
+                : `https://api.n2yo.com/rest/v1/satellite/positions/${currentSatId}/${userLat}/${userLng}/0/1/&apiKey=${N2YO_API_KEY}`;
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (data.positions && data.positions.length > 0) {
+                    return data.positions[0];
+                }
+            } catch (e) {
+                console.error('Falha ao buscar satélite:', e);
+                satStatus.textContent = "Erro ao buscar dados do satélite (ver console).";
+            }
+            return null;
+        }
+
+        function scheduleSatelliteFetch() {
+            fetchSatelliteData().then(pos => {
+                if (pos) lastPos = pos;
+            });
+            fetchSatelliteTrail();
+            setInterval(async () => {
+                const pos = await fetchSatelliteData();
+                if (pos) lastPos = pos;
+            }, REFRESH_MS);
+            setInterval(fetchSatelliteTrail, REFRESH_MS * 2);
+        }
+
+        async function fetchSatelliteTrail() {
+            if (userLat === null || userLng === null) return;
+            const seconds = 90;
+            const url = USE_OWN_BACKEND
+                ? `${BACKEND_ENDPOINT}?satid=${currentSatId}&lat=${userLat}&lng=${userLng}&seconds=${seconds}`
+                : `https://api.n2yo.com/rest/v1/satellite/positions/${currentSatId}/${userLat}/${userLng}/0/${seconds}/&apiKey=${N2YO_API_KEY}`;
+            try {
+                const res = await fetch(url);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.positions) {
+                    trailDots = data.positions.filter((_, i) => i % 6 === 0);
+                }
+            } catch (e) {
+                console.error('Falha ao buscar rastro:', e);
+            }
+        }
+
+        function renderTrail() {
+            document.querySelectorAll('.trail-dot').forEach(el => el.remove());
+            trailDots.forEach(p => {
+                if (p.elevation < 0) return;
+                let diffAz = p.azimuth - currentHeading;
+                if (diffAz > 180) diffAz -= 360;
+                if (diffAz < -180) diffAz += 360;
+                const diffEl = p.elevation - currentPitch;
+                if (Math.abs(diffAz) > CAMERA_FOV_H / 2 || Math.abs(diffEl) > CAMERA_FOV_V / 2) return;
+                const xPct = 50 + (diffAz / (CAMERA_FOV_H / 2)) * 50;
+                const yPct = 50 - (diffEl / (CAMERA_FOV_V / 2)) * 50;
+                const dot = document.createElement('div');
+                dot.className = 'trail-dot';
+                dot.style.left = xPct + '%';
+                dot.style.top = yPct + '%';
+                arHud.appendChild(dot);
+            });
+        }
+
+        function playFoundFeedback() {
+            if (alreadyFoundBeep) return;
+            alreadyFoundBeep = true;
+
+            if (navigator.vibrate) navigator.vibrate([80, 40, 120]);
+
+            try {
+                audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+                osc.connect(gain).connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch (e) {}
+        }
+
+        // =====================================================
+        // CAPTURA / COMPARTILHAR
+        // =====================================================
+        async function capturePhoto() {
+            const canvas = document.getElementById('captureCanvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            ctx.font = `${Math.round(canvas.width * 0.03)}px monospace`;
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 10;
+            ctx.fillText(`🛰️ ${currentSatName}`, canvas.width * 0.04, canvas.height * 0.08);
+            if (lastPos) {
+                ctx.fillText(`Elev: ${Math.round(lastPos.elevation)}°  Az: ${Math.round(lastPos.azimuth)}°`, canvas.width * 0.04, canvas.height * 0.13);
+            }
+
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `satelite-${Date.now()}.png`, { type: 'image/png' });
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({ files: [file], title: 'Satélite capturado', text: `Encontrei o ${currentSatName} no Matrix AR!` });
+                        return;
+                    } catch (e) {}
+                }
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `satelite-${Date.now()}.png`;
+                link.click();
+            }, 'image/png');
+        }
+
+        // =====================================================
+        // PRÓXIMAS PASSAGENS VISÍVEIS
+        // =====================================================
+        async function showUpcomingPasses() {
+            passesPanel.classList.add('open');
+            passesList.innerHTML = 'Carregando...';
+
+            if (userLat === null || userLng === null) {
+                passesList.innerHTML = 'Aguardando GPS...';
+                return;
+            }
+
+            const days = 5, minVisibility = 300;
+            const url = USE_OWN_BACKEND
+                ? `${BACKEND_ENDPOINT}/passes?satid=${currentSatId}&lat=${userLat}&lng=${userLng}&days=${days}`
+                : `https://api.n2yo.com/rest/v1/satellite/visualpasses/${currentSatId}/${userLat}/${userLng}/0/${days}/${minVisibility}/&apiKey=${N2YO_API_KEY}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!data.passes || data.passes.length === 0) {
+                    passesList.innerHTML = 'Nenhuma passagem visível encontrada nos próximos dias.';
+                    return;
+                }
+                passesList.innerHTML = data.passes.map(p => {
+                    const start = new Date(p.startUTC * 1000).toLocaleString('pt-BR');
+                    return `<div class="pass-item">
+                        <b>${start}</b><br>
+                        Duração: ${p.duration}s | Elevação máx: ${Math.round(p.maxEl)}°<br>
+                        Magnitude: ${p.mag ?? 'N/D'}
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                passesList.innerHTML = 'Erro ao buscar passagens (verifique CORS/backend).';
+            }
+        }
+
+        function closePasses() {
+            passesPanel.classList.remove('open');
+        }
+
+        // =====================================================
+        // 4. LOOP DE RASTREAMENTO
+        // =====================================================
+        function trackingLoop() {
+            if (!lastPos) {
+                requestAnimationFrame(trackingLoop);
+                return;
+            }
+
+            const satAzimuth = lastPos.azimuth;
+            const satElevation = lastPos.elevation;
+
+            if (satElevation < 0) {
+                marker.classList.remove('visible', 'found');
+                satStatus.textContent = "Satélite abaixo do horizonte (aguarde a próxima passagem)";
+                guideArrowL.style.opacity = '0';
+                guideArrowR.style.opacity = '0';
+                radarSatDot.style.opacity = '0';
+                alreadyFoundBeep = false;
+                requestAnimationFrame(trackingLoop);
+                return;
+            }
+
+            if (lastPos.sataltitude) {
+                const altKm = lastPos.sataltitude;
+                const elevRad = (satElevation * Math.PI) / 180;
+                const distKm = altKm / Math.sin(Math.max(elevRad, 0.05));
+                satStats.innerHTML = `ALT: ${Math.round(altKm)} km<br>DIST: ${Math.round(distKm)} km`;
+            }
+
+            let diffAz = satAzimuth - currentHeading;
+            if (diffAz > 180) diffAz -= 360;
+            if (diffAz < -180) diffAz += 360;
+
+            const diffEl = satElevation - currentPitch;
+
+            const withinHorizontalFOV = Math.abs(diffAz) < (CAMERA_FOV_H / 2);
+            const withinVerticalFOV = Math.abs(diffEl) < (CAMERA_FOV_V / 2);
+
+            if (withinHorizontalFOV && withinVerticalFOV) {
+                const xPct = 50 + (diffAz / (CAMERA_FOV_H / 2)) * 50;
+                const yPct = 50 - (diffEl / (CAMERA_FOV_V / 2)) * 50;
+                marker.style.left = xPct + '%';
+                marker.style.top = yPct + '%';
+                marker.classList.add('visible');
+
+                const closeEnough = Math.abs(diffAz) < 4 && Math.abs(diffEl) < 4;
+                marker.classList.toggle('found', closeEnough);
+
+                guideArrowL.style.opacity = '0';
+                guideArrowR.style.opacity = '0';
+
+                if (closeEnough) {
+                    playFoundFeedback();
+                } else {
+                    alreadyFoundBeep = false;
+                }
+
+                satStatus.textContent = closeEnough
+                    ? `🛰️ SATÉLITE À VISTA! (Elev: ${Math.round(satElevation)}°)`
+                    : `Ajuste fino — quase lá (Elev: ${Math.round(satElevation)}°)`;
+            } else {
+                marker.classList.remove('visible', 'found');
+                alreadyFoundBeep = false;
+                guideArrowL.style.opacity = diffAz < 0 ? '1' : '0';
+                guideArrowR.style.opacity = diffAz > 0 ? '1' : '0';
+
+                const vertHint = diffEl > 10 ? ' e mais pra cima' : diffEl < -10 ? ' e mais pra baixo' : '';
+                satStatus.textContent = `Gire ${Math.round(Math.abs(diffAz))}° para ${diffAz > 0 ? 'direita' : 'esquerda'}${vertHint}`;
+            }
+
+            renderTrail();
+
+            const radarR = 40;
+            const angleRad = (satAzimuth * Math.PI) / 180;
+            const rx = 50 + Math.sin(angleRad) * radarR;
+            const ry = 50 - Math.cos(angleRad) * radarR;
+            radarSatDot.style.left = rx + 'px';
+            radarSatDot.style.top = ry + 'px';
+            radarSatDot.style.opacity = '1';
+
+            requestAnimationFrame(trackingLoop);
+        }
+
+        // =====================================================
+        // 5. SELECIONAR SATÉLITE
+        // =====================================================
+        function selectSatellite() {
+            const satOptions = [
+                { id: 25544, name: "ISS (Estação Espacial)" },
+                { id: 33591, name: "AIST 2D (Russo)" },
+                { id: 40354, name: "Tiangong 1 (China)" },
+                { id: 20580, name: "Hubble Space Telescope" }
+            ];
+            let msg = "Escolha um satélite para rastrear:\n";
+            satOptions.forEach((s, i) => { msg += `${i + 1}. ${s.name}\n`; });
+            const choice = prompt(msg);
+            const idx = parseInt(choice) - 1;
+            if (idx >= 0 && idx < satOptions.length) {
+                currentSatId = satOptions[idx].id;
+                currentSatName = satOptions[idx].name;
+                satName.textContent = currentSatName;
+                satLabel.textContent = currentSatName.split(' ')[0];
+                lastPos = null;
+                satStatus.textContent = "Trocando de satélite...";
+            }
+        }
+
+        function stopAndExit() {
+            const stream = video.srcObject;
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            window.location.href = '/premium.html';
+        }
+    </script>
+</body>
+</html>

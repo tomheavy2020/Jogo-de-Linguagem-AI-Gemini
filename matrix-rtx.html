@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX OS RTX - CYBER COMMAND CENTER</title>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-dim: #00b32d;
+            --neon-cyan: #00f0ff;
+            --neon-gold: #ffb000;
+            --neon-red: #ff3b3b;
+            --neon-magenta: #ff2bd6;
+            --neon-purple: #8b5cf6;
+            --bg: #000;
+            --panel: rgba(0, 6, 0, 0.95);
+            --panel-rtx: rgba(0, 10, 0, 0.97);
+            --border: rgba(0, 255, 65, 0.25);
+            --border-active: rgba(0, 255, 65, 0.6);
+            --text: #00ff00;
+            --text-dim: rgba(0, 255, 65, 0.5);
+            --metal-dark: #0a0a0a;
+            --metal-mid: #1a1a1a;
+            --metal-light: #2a2a2a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: #000; color: var(--text);
+            font-family: 'Courier New', monospace;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: manipulation;
+        }
+
+        /* ============ MATRIX RAIN ============ */
+        #matrix-rain {
+            position: fixed; inset: 0;
+            width: 100vw; height: 100dvh;
+            z-index: 0; pointer-events: none;
+            opacity: 0.12;
+        }
+
+        /* ============ MAIN LAYOUT ============ */
+        .matrix-rtx {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100dvw;
+            max-width: 500px; margin: 0 auto;
+            padding: 5px; gap: 5px;
+            overflow-y: auto;
+        }
+
+        /* ============ HEADER ============ */
+        .rtx-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; border: 1px solid var(--border);
+            border-radius: 6px; background: var(--panel-rtx);
+            flex-shrink: 0; position: relative;
+            box-shadow: 0 0 20px rgba(0,255,65,0.1), inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        .rtx-header::before {
+            content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-active), transparent);
+        }
+        .rtx-brand {
+            display: flex; flex-direction: column;
+            font-size: 12px; font-weight: bold; letter-spacing: 2px;
+            color: var(--text); text-shadow: 0 0 10px var(--neon);
+        }
+        .rtx-brand .sub {
+            font-size: 6px; color: var(--text-dim); letter-spacing: 3px;
+            font-weight: normal;
+        }
+        .rtx-status {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 7px; color: var(--neon); letter-spacing: 1px;
+        }
+        .rtx-status .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--neon); animation: pulse 2s infinite;
+            box-shadow: 0 0 8px var(--neon);
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        /* ============ GPU CORE ============ */
+        .rtx-gpu {
+            border: 1px solid var(--border); border-radius: 8px;
+            background: var(--panel-rtx); padding: 10px;
+            flex-shrink: 0; position: relative;
+            box-shadow: 0 0 15px rgba(0,255,65,0.08), inset 0 0 20px rgba(0,0,0,0.6);
+        }
+        .gpu-header {
+            display: flex; justify-content: space-between;
+            font-size: 10px; font-weight: bold; letter-spacing: 1px;
+            margin-bottom: 8px; color: var(--text);
+        }
+        .gpu-body {
+            display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 6px;
+        }
+        .gpu-stat {
+            border: 1px solid var(--border); border-radius: 4px;
+            padding: 4px; text-align: center; background: rgba(0,0,0,0.6);
+        }
+        .gpu-stat .label {
+            font-size: 6px; color: var(--text-dim); text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .gpu-stat .value {
+            font-size: 13px; font-weight: bold; color: var(--neon);
+            text-shadow: 0 0 8px rgba(0,255,65,0.4);
+        }
+        .gpu-visual {
+            display: flex; align-items: center; gap: 6px;
+            margin-top: 8px; padding: 5px;
+            border: 1px solid rgba(0,255,65,0.15); border-radius: 4px;
+            background: linear-gradient(135deg, #0a0a0a, #111, #0a0a0a);
+        }
+        .gpu-fan {
+            width: 30px; height: 30px; border-radius: 50%;
+            border: 2px solid var(--border);
+            position: relative; flex-shrink: 0;
+            animation: spin 4s linear infinite;
+            box-shadow: 0 0 8px rgba(0,255,65,0.2);
+        }
+        .gpu-fan::before {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 2px; height: 80%; background: var(--border);
+            transform: translate(-50%, -50%);
+        }
+        .gpu-fan::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 80%; height: 2px; background: var(--border);
+            transform: translate(-50%, -50%);
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .gpu-bar {
+            flex: 1; height: 4px; border-radius: 2px;
+            background: rgba(0,255,65,0.1); overflow: hidden;
+        }
+        .gpu-bar-fill {
+            height: 100%; background: linear-gradient(90deg, var(--neon-dim), var(--neon));
+            border-radius: 2px; transition: width 0.5s;
+            box-shadow: 0 0 6px var(--neon);
+        }
+
+        /* ============ PANELS ============ */
+        .rtx-panel {
+            border: 1px solid var(--border); border-radius: 6px;
+            background: var(--panel); flex-shrink: 0;
+            overflow: hidden; position: relative;
+        }
+        .rtx-panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 5px 8px; border-bottom: 1px solid var(--border);
+            font-size: 9px; font-weight: bold; letter-spacing: 1px;
+            background: rgba(0,255,0,0.03);
+        }
+        .rtx-panel-body { padding: 6px; }
+
+        /* ============ CALCULATOR ============ */
+        .calc-display {
+            border: 2px solid var(--border); border-radius: 6px;
+            padding: 8px; background: rgba(0,0,0,0.95);
+            margin-bottom: 5px;
+            box-shadow: inset 0 0 20px rgba(0,255,65,0.05);
+        }
+        .calc-mode { display: flex; justify-content: space-between; font-size: 7px; color: var(--text-dim); }
+        .calc-expr { font-size: 11px; color: var(--neon-cyan); min-height: 16px; text-align: right; }
+        .calc-result { font-size: 24px; font-weight: bold; text-align: right; text-shadow: 0 0 15px var(--neon); }
+        .calc-version { font-size: 6px; color: var(--text-dim); text-align: center; letter-spacing: 2px; }
+
+        .calc-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            gap: 3px;
+        }
+        .calc-key {
+            background: var(--metal-dark); border: 1px solid #1a3a1a;
+            border-radius: 4px; padding: 8px 0; cursor: pointer;
+            font-family: inherit; font-size: 11px; color: var(--text);
+            text-align: center; transition: all 0.1s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .calc-key:active {
+            transform: translateY(2px);
+            box-shadow: 0 0 3px rgba(0,0,0,0.4), 0 0 10px rgba(0,255,65,0.3);
+        }
+        .calc-key.op { color: var(--neon-gold); }
+        .calc-key.func { color: var(--neon-cyan); font-size: 8px; }
+        .calc-key.ac { color: var(--neon-red); }
+        .calc-key.eq {
+            background: linear-gradient(160deg, #0a3a0a, #00b32d);
+            color: #000; font-weight: bold;
+        }
+
+        /* ============ AI CORE ============ */
+        .quick-commands {
+            display: flex; gap: 3px; flex-wrap: wrap;
+            padding: 4px; border-bottom: 1px solid var(--border);
+        }
+        .qc-btn {
+            background: rgba(0,255,0,0.05); border: 1px solid var(--border);
+            color: var(--text); font-size: 7px; padding: 2px 6px;
+            border-radius: 8px; cursor: pointer; font-family: inherit;
+        }
+        .chat-messages {
+            max-height: 120px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 3px;
+            padding: 5px;
+        }
+        .chat-messages::-webkit-scrollbar { width: 3px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--neon); border-radius: 2px; }
+        .message {
+            max-width: 95%; padding: 4px 8px; border-radius: 4px;
+            font-size: 9px; border: 1px solid var(--border);
+            background: rgba(0,255,0,0.03); animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; } }
+        .user-msg { align-self: flex-end; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); color: #fff; }
+        .bot-msg { align-self: flex-start; }
+        .chat-input-area { display: flex; gap: 3px; padding: 4px; border-top: 1px solid var(--border); }
+        .chat-input-area input {
+            flex: 1; background: transparent; border: none; color: var(--text);
+            outline: none; font-family: inherit; font-size: 10px; padding: 0 3px;
+        }
+        .chat-input-area button {
+            background: transparent; border: 1px solid var(--neon); color: var(--neon);
+            padding: 2px 10px; border-radius: 3px; cursor: pointer; font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-rain"></canvas>
+
+    <div class="matrix-rtx">
+        <!-- HEADER -->
+        <div class="rtx-header">
+            <div class="rtx-brand">MATRIX OS RTX<span class="sub">CYBER COMMAND CENTER</span></div>
+            <div class="rtx-status"><span class="dot"></span>ONLINE</div>
+        </div>
+
+        <!-- GPU CORE -->
+        <div class="rtx-gpu">
+            <div class="gpu-header"><span>RTX SYSTEM CORE</span><span>SIMULATION MODE</span></div>
+            <div class="gpu-body">
+                <div class="gpu-stat"><div class="label">GPU</div><div class="value" id="gpuLoad">42%</div></div>
+                <div class="gpu-stat"><div class="label">VRAM</div><div class="value" id="gpuVram">6.2GB</div></div>
+                <div class="gpu-stat"><div class="label">TEMP</div><div class="value" id="gpuTemp">48°C</div></div>
+                <div class="gpu-stat"><div class="label">FPS</div><div class="value" id="gpuFps">144</div></div>
+            </div>
+            <div class="gpu-visual">
+                <div class="gpu-fan"></div>
+                <div class="gpu-bar"><div class="gpu-bar-fill" id="gpuBarFill" style="width:42%;"></div></div>
+                <span style="font-size:7px;color:var(--text-dim);">RTX MATRIX CORE</span>
+            </div>
+        </div>
+
+        <!-- CALCULATOR -->
+        <div class="rtx-panel">
+            <div class="rtx-panel-header"><span>🧮 MATRIX 3D CALCULATOR RTX</span><span style="color:var(--neon-cyan);">● RTX CORE</span></div>
+            <div class="rtx-panel-body">
+                <div class="calc-display">
+                    <div class="calc-mode"><span id="calcMode">DEG</span><span id="calcMem">M: 0</span></div>
+                    <div class="calc-expr" id="calcExpr">&nbsp;</div>
+                    <div class="calc-result" id="calcResult">0</div>
+                    <div class="calc-version">MATRIX OS | AI CORE | RTX</div>
+                </div>
+                <div class="calc-grid">
+                    <button class="calc-key ac" onclick="calcAC()">AC</button>
+                    <button class="calc-key func" onclick="calcDEL()">DEL</button>
+                    <button class="calc-key func" onclick="calcPercent()">%</button>
+                    <button class="calc-key op" onclick="calcOp('/')">÷</button>
+                    <button class="calc-key func" onclick="calcSqrt()">√x</button>
+
+                    <button class="calc-key" onclick="calcNum('7')">7</button>
+                    <button class="calc-key" onclick="calcNum('8')">8</button>
+                    <button class="calc-key" onclick="calcNum('9')">9</button>
+                    <button class="calc-key op" onclick="calcOp('*')">×</button>
+                    <button class="calc-key func" onclick="calcSq()">x²</button>
+
+                    <button class="calc-key" onclick="calcNum('4')">4</button>
+                    <button class="calc-key" onclick="calcNum('5')">5</button>
+                    <button class="calc-key" onclick="calcNum('6')">6</button>
+                    <button class="calc-key op" onclick="calcOp('-')">−</button>
+                    <button class="calc-key func" onclick="calcCube()">x³</button>
+
+                    <button class="calc-key" onclick="calcNum('1')">1</button>
+                    <button class="calc-key" onclick="calcNum('2')">2</button>
+                    <button class="calc-key" onclick="calcNum('3')">3</button>
+                    <button class="calc-key op" onclick="calcOp('+')">+</button>
+                    <button class="calc-key func" onclick="calcSin()">sin</button>
+
+                    <button class="calc-key func" onclick="calcPi()">π</button>
+                    <button class="calc-key" onclick="calcNum('0')">0</button>
+                    <button class="calc-key" onclick="calcDot()">.</button>
+                    <button class="calc-key eq" onclick="calcEq()">=</button>
+                    <button class="calc-key func" onclick="calcCos()">cos</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI CORE -->
+        <div class="rtx-panel">
+            <div class="rtx-panel-header"><span>📡 MATRIX AI CORE</span><span style="color:var(--neon);">● ONLINE</span></div>
+            <div class="quick-commands">
+                <button class="qc-btn" onclick="setCmd('whois')">WHOIS</button>
+                <button class="qc-btn" onclick="setCmd('dns')">DNS</button>
+                <button class="qc-btn" onclick="setCmd('ssl')">SSL</button>
+                <button class="qc-btn" onclick="setCmd('headers')">HEADERS</button>
+                <button class="qc-btn" onclick="setCmd('ping')">PING</button>
+                <button class="qc-btn" onclick="setCmd('scan')">SCAN</button>
+                <button class="qc-btn" onclick="setCmd('ip')">IP</button>
+                <button class="qc-btn" onclick="setCmd('analyze')">ANALYZE</button>
+            </div>
+            <div class="chat-messages" id="chatBox"></div>
+            <div class="chat-input-area">
+                <input type="text" id="userInput" placeholder="> Comando OSINT..." autocomplete="off">
+                <button onclick="sendCmd()">▶</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ================= MATRIX RAIN =================
+function initMatrixRain() {
+    const canvas = document.getElementById('matrix-rain');
+    const ctx = canvas.getContext('2d');
+    const chars = 'アイウエオカキクケコ0123456789ABCDEF<>/{}[]=+*#$%&';
+    let drops = [], fontSize = 8, lastFrame = 0;
+    const fps = 12, interval = 1000 / fps;
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        fontSize = canvas.width < 500 ? 7 : 9;
+        const cols = Math.floor(canvas.width / fontSize);
+        drops = Array(cols).fill(0).map(() => Math.random() * canvas.height / fontSize);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function draw(now) {
+        requestAnimationFrame(draw);
+        if(now - lastFrame < interval) return;
+        lastFrame = now;
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        for(let i = 0; i < drops.length; i++) {
+            const ch = chars[Math.floor(Math.random()*chars.length)];
+            ctx.fillStyle = Math.random() > 0.9 ? '#fff' : '#00b32d';
+            ctx.font = fontSize + 'px monospace';
+            ctx.fillText(ch, i*fontSize, drops[i]*fontSize);
+            if(drops[i]*fontSize > canvas.height && Math.random() > 0.98) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    requestAnimationFrame(draw);
+}
+initMatrixRain();
+
+// ================= GPU SIMULATION =================
+setInterval(() => {
+    const gpuLoad = Math.floor(Math.random()*30 + 20);
+    const temp = Math.floor(Math.random()*15 + 40);
+    const fps = Math.floor(Math.random()*30 + 120);
+    document.getElementById('gpuLoad').innerText = gpuLoad + '%';
+    document.getElementById('gpuTemp').innerText = temp + '°C';
+    document.getElementById('gpuFps').innerText = fps;
+    document.getElementById('gpuBarFill').style.width = gpuLoad + '%';
+}, 2000);
+
+// ================= CALCULATOR =================
+let calcExpr = '';
+let calcRes = '0';
+let calcMemVal = 0;
+let calcIsRad = false;
+
+const calcExprEl = document.getElementById('calcExpr');
+const calcResultEl = document.getElementById('calcResult');
+const calcModeEl = document.getElementById('calcMode');
+const calcMemEl = document.getElementById('calcMem');
+
+function calcUpdate() {
+    calcExprEl.innerText = calcExpr || '\u00A0';
+    calcResultEl.innerText = calcRes;
+    calcModeEl.innerText = calcIsRad ? 'RAD' : 'DEG';
+    calcMemEl.innerText = 'M: ' + calcMemVal;
+}
+
+function calcNum(n) { calcExpr += n; calcUpdate(); }
+function calcOp(op) { calcExpr += ' ' + op + ' '; calcUpdate(); }
+function calcDot() { if(!calcExpr.endsWith('.')) { calcExpr += '.'; calcUpdate(); } }
+function calcPercent() { calcExpr += '%'; calcUpdate(); }
+function calcAC() { calcExpr = ''; calcRes = '0'; calcUpdate(); }
+function calcDEL() { calcExpr = calcExpr.trimEnd().slice(0, -1); calcUpdate(); }
+function calcSqrt() { calcRes = Math.sqrt(parseFloat(calcRes) || 0).toString(); calcUpdate(); }
+function calcSq() { calcRes = Math.pow(parseFloat(calcRes) || 0, 2).toString(); calcUpdate(); }
+function calcCube() { calcRes = Math.pow(parseFloat(calcRes) || 0, 3).toString(); calcUpdate(); }
+function calcPi() { calcRes = Math.PI.toString(); calcUpdate(); }
+function calcSin() { calcRes = Math.sin(calcIsRad ? parseFloat(calcRes) : parseFloat(calcRes) * Math.PI / 180).toFixed(6); calcUpdate(); }
+function calcCos() { calcRes = Math.cos(calcIsRad ? parseFloat(calcRes) : parseFloat(calcRes) * Math.PI / 180).toFixed(6); calcUpdate(); }
+
+function calcEq() {
+    try {
+        let expr = calcExpr.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/%/g, '/100');
+        if(!/^[\d+\-*/.()\s]+$/.test(expr)) throw new Error('Invalid');
+        const val = Function('"use strict"; return (' + expr + ')')();
+        if(!isFinite(val)) throw new Error('Div by zero');
+        calcRes = parseFloat(val.toFixed(10)).toString();
+        calcExpr = '';
+        calcUpdate();
+    } catch(e) {
+        calcRes = 'ERROR';
+        calcUpdate();
+        setTimeout(() => { calcRes = '0'; calcUpdate(); }, 1200);
+    }
+}
+
+// Teclado físico
+document.addEventListener('keydown', (e) => {
+    if(e.key >= '0' && e.key <= '9') calcNum(e.key);
+    else if(e.key === '.') calcDot();
+    else if(e.key === '+') calcOp('+');
+    else if(e.key === '-') calcOp('-');
+    else if(e.key === '*') calcOp('*');
+    else if(e.key === '/') { e.preventDefault(); calcOp('/'); }
+    else if(e.key === 'Enter') calcEq();
+    else if(e.key === 'Backspace') calcDEL();
+    else if(e.key === 'Escape') calcAC();
+});
+
+calcUpdate();
+
+// ================= AI CORE =================
+const chatBox = document.getElementById('chatBox');
+const userInput = document.getElementById('userInput');
+let cmdHistory = [], histIdx = -1;
+
+function addMsg(type, text) {
+    const div = document.createElement('div');
+    div.className = 'message ' + type + '-msg';
+    div.innerHTML = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function setCmd(cmd) {
+    userInput.value = cmd + ' ';
+    userInput.focus();
+}
+
+function sendCmd() {
+    const text = userInput.value.trim();
+    if(!text) return;
+    addMsg('user', '> ' + text);
+    cmdHistory.push(text);
+    histIdx = -1;
+    userInput.value = '';
+    const parts = text.toLowerCase().split(' ');
+    executeCmd(parts[0], parts.slice(1).join(' '));
+}
+
+async function executeCmd(cmd, args) {
+    switch(cmd) {
+        case 'help':
+            addMsg('bot', 'whois [dom] • dns [dom] • ssl [dom]<br>headers [url] • scan [host] • ip [addr]<br>ping [host] • analyze [dom] • clear');
+            break;
+        case 'clear': chatBox.innerHTML = ''; break;
+        case 'whois':
+            if(!args) { addMsg('bot', '❌ Uso: whois [domínio]'); return; }
+            try {
+                const res = await fetch(`https://rdap.org/domain/${args}`);
+                const data = await res.json();
+                addMsg('bot', `✅ <b>${args}</b><br>Registrador: ${data.entities?.[0]?.vcardArray?.[1]?.[1]?.[3] || 'N/A'}`);
+            } catch(e) { addMsg('bot', '❌ Erro ao consultar'); }
+            break;
+        case 'dns':
+            if(!args) { addMsg('bot', '❌ Uso: dns [domínio]'); return; }
+            try {
+                const res = await fetch(`https://dns.google/resolve?name=${args}&type=A`);
+                const data = await res.json();
+                addMsg('bot', data.Answer ? `✅ ${data.Answer.map(a => a.data).join(', ')}` : '❌ Sem registros');
+            } catch(e) { addMsg('bot', '❌ Erro DNS'); }
+            break;
+        case 'ping':
+            if(!args) { addMsg('bot', '❌ Uso: ping [host]'); return; }
+            setTimeout(() => addMsg('bot', `📡 ${args}: ${Math.floor(Math.random()*50+5)}ms`), 800);
+            break;
+        case 'analyze':
+            if(!args) { addMsg('bot', '❌ Uso: analyze [domínio]'); return; }
+            addMsg('bot', '[01] DNS...<br>[02] TLS...<br>[03] HTTP...');
+            setTimeout(() => addMsg('bot', '✅ Análise completa (simulação)'), 1500);
+            break;
+        default:
+            addMsg('bot', `👾 <b>${cmd}</b>: não reconhecido. Digite 'help'`);
+    }
+}
+
+userInput.addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') sendCmd();
+    else if(e.key === 'ArrowUp') {
+        e.preventDefault();
+        if(histIdx < cmdHistory.length - 1) { histIdx++; userInput.value = cmdHistory[cmdHistory.length - 1 - histIdx]; }
+    }
+});
+
+addMsg('bot', '👾 <b>MATRIX AI CORE ONLINE</b><br>Digite help para comandos');
+</script>
+</body>
+</html>

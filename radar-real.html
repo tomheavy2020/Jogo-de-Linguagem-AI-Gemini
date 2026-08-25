@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matrix Flight Radar</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #050505; color: #00ff00; font-family: 'Courier New', monospace; margin: 0; padding: 0; overflow: hidden; height: 100vh; width: 100vw; }
+        .header {
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 1000;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid #ffaa00; box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        .header h1 { font-size: 18px; color: #ffaa00; text-shadow: 0 0 10px #ffaa00; display: flex; align-items: center; gap: 10px; }
+        .header button {
+            background: transparent; border: 1px solid #ff0000; color: #ff0000;
+            padding: 5px 15px; border-radius: 5px; cursor: pointer; font-family: inherit;
+        }
+        #radarMap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: #0a0a0a; }
+        .status-bar {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; background: rgba(0,0,0,0.8); border: 1px solid #00ff00;
+            padding: 8px 16px; border-radius: 20px; font-size: 12px; color: #00ff00;
+            display: flex; gap: 15px; box-shadow: 0 0 15px rgba(0,255,0,0.2);
+        }
+        .status-bar .blink { animation: blink 1s step-start infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .plane-icon { background: transparent; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 6px currentColor); }
+        .plane-icon svg { width: 20px; height: 20px; transform-origin: center center; transition: transform 0.3s linear; }
+        @media (max-width: 600px) {
+            .header h1 { font-size: 14px; }
+            .status-bar { font-size: 10px; padding: 4px 10px; bottom: 10px; }
+            .plane-icon svg { width: 16px; height: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✈️ MATRIX FLIGHT RADAR</h1>
+        <button onclick="window.location.href='/premium.html'">✕ Fechar</button>
+    </div>
+    <div id="radarMap"></div>
+    <div class="status-bar">
+        <span class="blink">🟢</span>
+        <span id="planeCounter">Aviões rastreados: 0</span>
+        <span>|</span>
+        <span id="statusText">🔄 Sinal ao vivo</span>
+    </div>
+
+    <script>
+        const map = L.map('radarMap', { center: [-14.2350, -51.9253], zoom: 4, zoomControl: false });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: 'Matrix OS Radar', subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        let planeMarkers = {}; let planeCount = 0;
+        const statusCounter = document.getElementById('planeCounter');
+        const statusText = document.getElementById('statusText');
+        let updateInterval = null; let simInterval = null;
+        let isSimulationMode = false; let simPlanes = [];
+
+        const PLANE_COLORS = ['#ffcc00', '#ffaa00', '#00ffff', '#ff00ff', '#ff0040', '#00ff41'];
+        const MAX_TRAIL_POINTS = 18;
+
+        function stopAllIntervals() {
+            if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
+            if (simInterval) { clearInterval(simInterval); simInterval = null; }
+        }
+
+        function clearSimulatedPlanes() {
+            simPlanes.forEach(p => {
+                if (p.rafId) cancelAnimationFrame(p.rafId);
+                if (p.timeoutId) clearTimeout(p.timeoutId);
+                map.removeLayer(p.marker); map.removeLayer(p.polyline);
+            });
+            simPlanes = []; planeCount = 0;
+            statusCounter.innerText = `Aviões rastreados: 0`;
+        }
+
+        function makePlaneIcon(color) {
+            return L.divIcon({
+                className: 'plane-icon',
+                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12l8-4 8 4-8 4z" fill="${color}" stroke="${color}"/>
+                        <path d="M6 12v6M18 12v6" stroke="${color}" stroke-width="1.5"/>
+                        <path d="M10 8v8" stroke="${color}" stroke-width="1.5"/>
+                        <path d="M12 8v8" stroke="#fff" stroke-width="1.5"/>
+                    </svg>`,
+                iconSize: [20, 20], iconAnchor: [10, 10]
+            });
+        }
+
+        function setPlaneRotation(marker, headingDeg) {
+            const el = marker.getElement();
+            if (!el) return;
+            const svg = el.querySelector('svg');
+            if (svg) svg.style.transform = `rotate(${headingDeg - 90}deg)`;
+        }
+
+        function bearingBetween(lat1, lng1, lat2, lng2) {
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const y = Math.sin(dLng) * Math.cos(lat2 * Math.PI / 180);
+            const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                      Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLng);
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        }
+
+        function startOfflineSimulation() {
+            if (isSimulationMode) return;
+            isSimulationMode = true;
+            statusText.innerText = "🔄 Modo Simulação (Offline)";
+            if (simInterval) clearInterval(simInterval);
+
+            function spawnSimulatedPlane() {
+                const fromLat = Math.random() * (5.27 + 33.75) - 33.75;
+                const fromLng = Math.random() * (-34.79 + 73.99) - 73.99;
+                const distDeg = 4 + Math.random() * 12;
+                const angle = Math.random() * 2 * Math.PI;
+                const toLat = fromLat + Math.cos(angle) * distDeg;
+                const toLng = fromLng + Math.sin(angle) * distDeg;
+                const color = PLANE_COLORS[Math.floor(Math.random() * PLANE_COLORS.length)];
+                const heading = bearingBetween(fromLat, fromLng, toLat, toLng);
+
+                const marker = L.marker([fromLat, fromLng], { icon: makePlaneIcon(color) });
+                marker.addTo(map);
+                marker.on('add', () => setPlaneRotation(marker, heading));
+
+                const polyline = L.polyline([[fromLat, fromLng]], { color: color, weight: 2, opacity: 0.55, dashArray: '1,6' }).addTo(map);
+                const duration = 9000 + Math.random() * 7000;
+                const startTime = performance.now();
+                let lastTrailPush = startTime;
+
+                planeCount++;
+                statusCounter.innerText = `Aviões rastreados: ${planeCount}`;
+
+                const planeState = { marker, polyline, rafId: null, timeoutId: null };
+                simPlanes.push(planeState);
+
+                function animate(now) {
+                    const elapsed = now - startTime;
+                    const t = Math.min(elapsed / duration, 1);
+                    const curLat = fromLat + (toLat - fromLat) * t;
+                    const curLng = fromLng + (toLng - fromLng) * t;
+                    marker.setLatLng([curLat, curLng]);
+                    setPlaneRotation(marker, heading);
+
+                    if (now - lastTrailPush > 250) {
+                        const pts = polyline.getLatLngs();
+                        pts.push([curLat, curLng]);
+                        polyline.setLatLngs(pts);
+                        lastTrailPush = now;
+                    }
+
+                    if (t < 1) { planeState.rafId = requestAnimationFrame(animate); }
+                    else {
+                        planeState.timeoutId = setTimeout(() => {
+                            map.removeLayer(marker); map.removeLayer(polyline);
+                            const idx = simPlanes.indexOf(planeState);
+                            if (idx > -1) simPlanes.splice(idx, 1);
+                            planeCount--;
+                            statusCounter.innerText = `Aviões rastreados: ${planeCount}`;
+                        }, 400);
+                    }
+                }
+                planeState.rafId = requestAnimationFrame(animate);
+            }
+
+            for (let i = 0; i < 15; i++) setTimeout(spawnSimulatedPlane, i * 200);
+            simInterval = setInterval(spawnSimulatedPlane, 2000);
+        }
+
+        async function fetchRealFlights() {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4000);
+            try {
+                const response = await fetch('/api/flights', { signal: controller.signal });
+                clearTimeout(timeout);
+                if (!response.ok) throw new Error('Erro na API do servidor');
+                const data = await response.json();
+                if (data.states && data.states.length > 0) {
+                    if (isSimulationMode) {
+                        isSimulationMode = false;
+                        statusText.innerText = "🔄 Sinal ao vivo";
+                        if (simInterval) { clearInterval(simInterval); simInterval = null; }
+                        clearSimulatedPlanes();
+                    }
+                    updateRealPlanes(data.states);
+                } else {
+                    statusCounter.innerText = "Aviões rastreados: Nenhum voo no momento";
+                }
+            } catch (error) {
+                clearTimeout(timeout);
+                console.warn("API real falhou, ativando simulação offline...", error.message);
+                if (!isSimulationMode) { startOfflineSimulation(); }
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return "N/D";
+            return String(str).replace(/[&<>"]/g, function(m) {
+                if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; if (m === '"') return '&quot;'; return m;
+            });
+        }
+
+        function updateRealPlanes(states) {
+            const activePlaneIds = new Set();
+            states.forEach((state) => {
+                const icao24 = state[0]; const callsign = state[1]?.trim() || "N/A";
+                const lat = state[6]; const lng = state[5];
+                const altitude = state[7]; const velocity = state[9]; const heading = state[10];
+
+                if (lat && lng) {
+                    activePlaneIds.add(icao24); const pos = [lat, lng];
+                    if (planeMarkers[icao24]) {
+                        const entry = planeMarkers[icao24];
+                        entry.marker.setLatLng(pos);
+                        entry.marker.setPopupContent(`
+                            <b style="color:#ffaa00;">${escapeHTML(callsign)}</b><br>
+                            Alt: ${altitude ? Math.round(altitude * 3.28084) + ' pés' : 'N/D'}<br>
+                            Vel: ${velocity ? Math.round(velocity * 3.6) + ' km/h' : 'N/D'}
+                        `);
+                        if (heading !== null && heading !== undefined) setPlaneRotation(entry.marker, heading);
+                        entry.trail.push(pos);
+                        if (entry.trail.length > MAX_TRAIL_POINTS) entry.trail.shift();
+                        entry.polyline.setLatLngs(entry.trail);
+                    } else {
+                        const color = PLANE_COLORS[Math.floor(Math.random() * PLANE_COLORS.length)];
+                        const marker = L.marker(pos, { icon: makePlaneIcon(color) });
+                        marker.bindPopup(`
+                            <b style="color:#ffaa00;">${escapeHTML(callsign)}</b><br>
+                            <span style="color:#fff;">Alt: ${altitude ? Math.round(altitude * 3.28084) + ' pés' : 'N/D'}</span><br>
+                            <span style="color:#888;">Vel: ${velocity ? Math.round(velocity * 3.6) + ' km/h' : 'N/D'}</span>
+                        `);
+                        marker.addTo(map);
+                        if (heading !== null && heading !== undefined) marker.on('add', () => setPlaneRotation(marker, heading));
+                        const polyline = L.polyline([pos], { color: color, weight: 2, opacity: 0.6 }).addTo(map);
+                        planeMarkers[icao24] = { marker, polyline, trail: [pos] };
+                        planeCount++;
+                    }
+                }
+            });
+
+            for (const icao24 in planeMarkers) {
+                if (!activePlaneIds.has(icao24)) {
+                    map.removeLayer(planeMarkers[icao24].marker);
+                    map.removeLayer(planeMarkers[icao24].polyline);
+                    delete planeMarkers[icao24];
+                    planeCount--;
+                }
+            }
+            statusCounter.innerText = `Aviões rastreados: ${planeCount}`;
+        }
+
+        updateInterval = setInterval(fetchRealFlights, 15000);
+        setTimeout(fetchRealFlights, 500);
+
+        window.__radarCleanup = function() {
+            stopAllIntervals(); clearSimulatedPlanes();
+            for (const key in planeMarkers) {
+                map.removeLayer(planeMarkers[key].marker);
+                map.removeLayer(planeMarkers[key].polyline);
+                delete planeMarkers[key];
+            }
+            planeCount = 0;
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+routes:
+  - type: rewrite
+    source: /
+    destination: /boot.html
+  - type: rewrite
+    source: /index.html
+    destination: /index.html

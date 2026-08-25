@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PRO CAMERA 360 - MATRIX OS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-cyan: #00f0ff;
+            --neon-orange: #ff9500;
+            --neon-red: #ff3b3b;
+            --glass: rgba(0,255,65,0.12);
+            --glass-border: rgba(0,255,65,0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: #000; color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden; touch-action: none;
+            height: 100dvh; width: 100dvw; position: fixed;
+        }
+        #app { width: 100vw; height: 100vh; display: flex; flex-direction: column; position: relative; }
+        .viewfinder { flex: 1; position: relative; overflow: hidden; background: #111; }
+        #video { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter 0.25s ease; }
+        #canvas { display: none; }
+        .flash { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.1s; }
+        .flash.active { opacity: 1; }
+        .grid { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: none; }
+        .grid.on { display: block; }
+        .grid-line { position: absolute; background: rgba(0,255,65,0.3); }
+        .grid-v1 { left: 33.33%; top: 0; width: 1px; height: 100%; }
+        .grid-v2 { left: 66.66%; top: 0; width: 1px; height: 100%; }
+        .grid-h1 { top: 33.33%; left: 0; width: 100%; height: 1px; }
+        .grid-h2 { top: 66.66%; left: 0; width: 100%; height: 1px; }
+        .level { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; z-index: 20; }
+        .level-bar { height: 100%; width: 50%; background: var(--neon); margin-left: 25%; transition: all 0.1s; }
+
+        #matrixRain { position: absolute; inset: 0; z-index: 16; pointer-events: none; mix-blend-mode: screen; opacity: 0.18; }
+        .viewfinder::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(0deg, rgba(0,255,65,0.035) 0px, rgba(0,255,65,0.035) 1px, transparent 1px, transparent 3px);
+            pointer-events: none;
+            z-index: 17;
+        }
+        @keyframes glitch {
+            0% { transform: translate(0); filter: hue-rotate(0deg); }
+            20% { transform: translate(-3px,2px); filter: hue-rotate(40deg); }
+            40% { transform: translate(3px,-2px); filter: hue-rotate(-40deg); }
+            60% { transform: translate(-2px,1px); filter: hue-rotate(20deg); }
+            80% { transform: translate(2px,-1px); filter: hue-rotate(-20deg); }
+            100% { transform: translate(0); filter: hue-rotate(0deg); }
+        }
+        .glitch-active { animation: glitch 0.28s linear; }
+
+        #bootSplash {
+            position: fixed; inset: 0; background: #000; z-index: 300;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--neon); font-family: 'Courier New', monospace; font-size: 14px; letter-spacing: 1px;
+            padding: 20px; text-align: center;
+        }
+        #bootSplash .boot-logo { font-size: 22px; font-weight: 700; margin-bottom: 24px; letter-spacing: 4px; text-shadow: 0 0 12px var(--neon); }
+        #bootText { white-space: pre-line; min-height: 120px; opacity: 0.9; }
+        #bootText::after { content: '█'; animation: blink 0.8s steps(1) infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .sphere-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.06); z-index: 40; display: none; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 34px; }
+        .sphere-overlay.active { display: flex; }
+        .sphere-reticle { position: absolute; top: 50%; left: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 2px solid rgba(255,255,255,0.85); border-radius: 50%; z-index: 41; }
+        .sphere-reticle::before, .sphere-reticle::after { content: ''; position: absolute; background: rgba(255,255,255,0.85); }
+        .sphere-reticle::before { left: 50%; top: -9px; width: 2px; height: 8px; margin-left: -1px; }
+        .sphere-reticle::after { left: 50%; bottom: -9px; width: 2px; height: 8px; margin-left: -1px; }
+        .sphere-target { position: absolute; top: 50%; left: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border: 3px solid #ff0; border-radius: 50%; box-shadow: 0 0 14px rgba(255,255,0,0.7); z-index: 42; transition: left 0.08s linear, top 0.08s linear, border-color 0.15s, box-shadow 0.15s; display: none; }
+        .sphere-target.aligned { border-color: var(--neon); box-shadow: 0 0 18px var(--neon); }
+        .sphere-arrow { position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-bottom: 28px solid #ff0; filter: drop-shadow(0 0 6px rgba(0,0,0,0.8)); z-index: 42; display: none; transform-origin: 50% 60%; }
+        .sphere-minigrid { position: absolute; top: 76px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 3px; z-index: 41; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 8px; }
+        .sphere-minirow { display: flex; gap: 3px; }
+        .sphere-minicell { width: 15px; height: 15px; border-radius: 3px; background-color: rgba(255,255,255,0.2); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.25); }
+        .sphere-minicell.done { border-color: var(--neon); }
+        .sphere-minicell.next { border-color: #ff0; box-shadow: 0 0 6px #ff0; }
+        .sphere-text { color: #fff; font-size: 14px; text-align: center; max-width: 280px; text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.95); }
+        .sphere-progress { width: 80%; height: 4px; background: rgba(255,255,255,0.25); border-radius: 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.6); margin: 12px 0; }
+        .sphere-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--neon), var(--neon-cyan)); border-radius: 2px; transition: width 0.3s; }
+        .sphere-actions { display: flex; gap: 16px; align-items: center; }
+        .sphere-capture-btn { width: 62px; height: 62px; border-radius: 50%; border: 3px solid var(--neon); background: rgba(0,0,0,0.5); color: var(--neon); font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .sphere-capture-btn:active { background: var(--neon); color: #000; }
+
+        .top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); z-index: 30; gap: 8px; }
+        .top-bar-left, .top-bar-right { display: flex; gap: 8px; }
+        .icon-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); color: var(--neon); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+        .icon-btn:active { background: var(--neon); color: #000; }
+        .filters-bar { position: absolute; bottom: 140px; left: 0; right: 0; display: flex; gap: 8px; padding: 0 16px; overflow-x: auto; z-index: 30; scrollbar-width: none; }
+        .filters-bar::-webkit-scrollbar { display: none; }
+        .filter-chip { flex-shrink: 0; padding: 8px 16px; border-radius: 20px; background: var(--glass); backdrop-filter: blur(10px); border: 2px solid transparent; color: #fff; font-size: 13px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .filter-chip.active { border-color: var(--neon); background: rgba(0,255,65,0.25); }
+        .bottom-controls { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 24px 30px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); display: flex; align-items: center; justify-content: space-between; z-index: 30; }
+        .mode-selector { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; z-index: 30; }
+        .mode-btn { background: none; border: none; color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 600; cursor: pointer; padding: 4px 8px; transition: all 0.2s; }
+        .mode-btn.active { color: var(--neon); font-size: 16px; }
+        .shutter-btn { width: 72px; height: 72px; border-radius: 50%; border: 4px solid #fff; background: transparent; position: relative; cursor: pointer; transition: all 0.1s; }
+        .shutter-btn::after { content: ''; position: absolute; inset: 4px; background: #fff; border-radius: 50%; transition: all 0.1s; }
+        .shutter-btn:active { transform: scale(0.9); }
+        .shutter-btn:active::after { background: var(--neon); }
+        .shutter-btn.recording::after { background: var(--neon-red); }
+        .shutter-btn.recording { border-color: var(--neon-red); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .gallery-thumb { width: 48px; height: 48px; border-radius: 8px; background: var(--glass); overflow: hidden; cursor: pointer; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .gallery-modal { position: fixed; inset: 0; background: #000; z-index: 100; display: none; flex-direction: column; }
+        .gallery-modal.active { display: flex; }
+        .gallery-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); color: var(--neon); }
+        .gallery-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; }
+        .gallery-item { aspect-ratio: 1; background: #222; cursor: pointer; position: relative; }
+        .gallery-item img, .gallery-item video { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-item .badge-360 { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); color: var(--neon-cyan); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+        .gallery-item .delete-btn { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(255,0,0,0.7); border: none; border-radius: 50%; color: #fff; font-size: 12px; cursor: pointer; }
+        .viewer { position: fixed; inset: 0; background: #000; z-index: 110; display: none; align-items: center; justify-content: center; }
+        .viewer.active { display: flex; }
+        .viewer img, .viewer video { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .viewer-pano { width: 100%; height: 60vh; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .viewer-pano img { height: 100%; width: auto; max-width: none; }
+        .viewer-hint { position: absolute; bottom: 100px; color: rgba(255,255,255,0.6); font-size: 13px; width: 100%; text-align: center; }
+        .viewer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; background: rgba(255,255,255,0.2); border: none; border-radius: 50%; color: #fff; font-size: 20px; cursor: pointer; z-index: 5; }
+        .sphere-3d-btn { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,255,65,0.15); border: 2px solid var(--neon); color: var(--neon); padding: 10px 22px; border-radius: 24px; font-size: 14px; cursor: pointer; z-index: 5; }
+        .zoom-control { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); z-index: 30; display: none; flex-direction: column; align-items: center; gap: 8px; }
+        .zoom-slider { writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 30px; height: 150px; }
+        .zoom-value { font-size: 12px; font-weight: 600; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px; color: var(--neon); }
+        .focus-control { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); z-index: 30; display: none; flex-direction: column; align-items: center; gap: 8px; }
+        .focus-ring { position: absolute; width: 70px; height: 70px; border: 2px solid var(--neon); border-radius: 8px; pointer-events: none; z-index: 25; opacity: 0; }
+        .focus-ring.pulse { animation: focusPulse 0.6s ease-out; }
+        @keyframes focusPulse { 0% { opacity: 1; transform: scale(1.3); border-color: #fff; } 60% { opacity: 1; transform: scale(1); border-color: var(--neon); } 100% { opacity: 0; transform: scale(0.95); } }
+        .timer-badge { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 48px; font-weight: 700; color: var(--neon-orange); text-shadow: 0 2px 10px rgba(0,0,0,0.5); z-index: 30; display: none; }
+        .close-btn { background: transparent; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 4px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 10px; }
+        @media (max-width: 600px) {
+            .shutter-btn { width: 64px; height: 64px; }
+            .filter-chip { font-size: 11px; padding: 6px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="bootSplash">
+    <div class="boot-logo">MATRIX CAM</div>
+    <div id="bootText"></div>
+</div>
+
+<div id="app">
+    <div class="viewfinder">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <canvas id="matrixRain"></canvas>
+        <div class="flash" id="flash"></div>
+        <div class="grid" id="grid">
+            <div class="grid-line grid-v1"></div>
+            <div class="grid-line grid-v2"></div>
+            <div class="grid-line grid-h1"></div>
+            <div class="grid-line grid-h2"></div>
+        </div>
+        <div class="level"><div class="level-bar" id="levelBar"></div></div>
+        <div class="timer-badge" id="timerBadge">3</div>
+        <div class="focus-control" id="focusControl">
+            <span class="zoom-value" id="focusValue">AF</span>
+            <input type="range" class="zoom-slider" id="focusSlider" min="0" max="1" step="0.01" value="0">
+        </div>
+        <div class="zoom-control" id="zoomControl">
+            <span class="zoom-value" id="zoomValue">1x</span>
+            <input type="range" class="zoom-slider" id="zoomSlider" min="1" max="5" step="0.1" value="1">
+        </div>
+
+        <div class="sphere-overlay" id="sphereOverlay">
+            <div class="sphere-reticle"></div>
+            <div class="sphere-target" id="sphereTarget"></div>
+            <div class="sphere-arrow" id="sphereArrow"></div>
+            <div class="sphere-minigrid" id="sphereMinigrid"></div>
+            <div class="sphere-progress"><div class="sphere-progress-bar" id="sphereProgress"></div></div>
+            <div class="sphere-text" id="sphereText">Alinhe o círculo amarelo com a mira central</div>
+            <div class="sphere-actions">
+                <button class="icon-btn" onclick="camera.cancelSphere()">✕</button>
+                <button class="sphere-capture-btn" onclick="camera.captureSphereShot()">📸</button>
+                <button class="icon-btn" onclick="camera.finishSphereEarly()" title="Finalizar agora">✓</button>
+            </div>
+        </div>
+
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <button class="icon-btn" onclick="camera.toggleFlash()">⚡</button>
+                <button class="icon-btn" onclick="camera.toggleGrid()">⊞</button>
+                <button class="icon-btn" onclick="camera.toggleTimer()">⏱</button>
+                <button class="icon-btn" onclick="camera.startSphere()" title="Foto esfera 360°">🌐</button>
+            </div>
+            <button class="close-btn" onclick="window.location.href='/index.html'">✕ SAIR</button>
+        </div>
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="camera.setMode('photo', this)">FOTO</button>
+            <button class="mode-btn" onclick="camera.setMode('video', this)">VÍDEO</button>
+        </div>
+        <div class="filters-bar">
+            <div class="filter-chip active" onclick="camera.setFilter('none', this)">Normal</div>
+            <div class="filter-chip" onclick="camera.setFilter('grayscale(85%) contrast(105%)', this)">PB</div>
+            <div class="filter-chip" onclick="camera.setFilter('sepia(45%) contrast(103%) brightness(102%) saturate(90%)', this)">Sépia</div>
+            <div class="filter-chip" onclick="camera.setFilter('contrast(112%) saturate(122%) brightness(101%)', this)">Vívido</div>
+            <div class="filter-chip" onclick="camera.setFilter('saturate(135%) contrast(106%) brightness(101%)', this)">Neon</div>
+            <div class="filter-chip" onclick="camera.setFilter('hue-rotate(180deg) invert(85%) contrast(95%)', this)">Negativo</div>
+            <div class="filter-chip" onclick="camera.setFilter('grayscale(100%) sepia(100%) hue-rotate(70deg) saturate(400%) brightness(90%) contrast(120%)', this)">Matrix</div>
+            <div class="filter-chip" onclick="camera.setFilter('saturate(150%) hue-rotate(260deg) contrast(115%)', this)">Cyber</div>
+            <div class="filter-chip" onclick="camera.setFilter('sepia(35%) contrast(90%) brightness(105%) saturate(80%)', this)">Vintage</div>
+            <div class="filter-chip" onclick="camera.setFilter('saturate(120%) hue-rotate(180deg) brightness(105%)', this)">Frio</div>
+            <div class="filter-chip" onclick="camera.setFilter('sepia(20%) saturate(140%) hue-rotate(-10deg) brightness(105%)', this)">Quente</div>
+            <div class="filter-chip" onclick="camera.setFilter('contrast(150%) saturate(110%)', this)">Alto Contraste</div>
+            <div class="filter-chip" onclick="camera.setFilter('sepia(60%) saturate(160%) hue-rotate(15deg) brightness(108%)', this)">Dourado</div>
+        </div>
+        <div class="bottom-controls">
+            <div class="gallery-thumb" onclick="camera.openGallery()">🖼</div>
+            <button class="shutter-btn" id="shutterBtn" onclick="camera.capture()"></button>
+            <button class="icon-btn" onclick="camera.switchCamera()">🔄</button>
+        </div>
+    </div>
+</div>
+
+<div class="gallery-modal" id="galleryModal">
+    <div class="gallery-header">
+        <h3>📸 GALERIA</h3>
+        <button class="icon-btn" onclick="camera.closeGallery()">✕</button>
+    </div>
+    <div class="gallery-grid" id="galleryGrid"></div>
+</div>
+
+<div class="viewer" id="viewer">
+    <button class="viewer-close" onclick="camera.closeViewer()">✕</button>
+    <div id="viewerContent"></div>
+</div>
+
+<script>
+class MatrixRain {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789';
+        this.fontSize = 16;
+        this.drops = [];
+        this.running = true;
+        this.resize();
+        this._onResize = () => this.resize();
+        window.addEventListener('resize', this._onResize);
+        this.animate();
+    }
+    resize() {
+        this.canvas.width = this.canvas.offsetWidth;
+        this.canvas.height = this.canvas.offsetHeight;
+        const cols = Math.floor(this.canvas.width / this.fontSize) || 1;
+        this.drops = Array(cols).fill(1);
+    }
+    animate() {
+        if (!this.running) return;
+        this.ctx.fillStyle = 'rgba(0,0,0,0.07)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = '#00ff41';
+        this.ctx.font = this.fontSize + 'px monospace';
+        for (let i = 0; i < this.drops.length; i++) {
+            const text = this.chars[Math.floor(Math.random() * this.chars.length)];
+            this.ctx.fillText(text, i * this.fontSize, this.drops[i] * this.fontSize);
+            if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.975) {
+                this.drops[i] = 0;
+            }
+            this.drops[i]++;
+        }
+        requestAnimationFrame(() => this.animate());
+    }
+}
+
+function runBootSequence(callback) {
+    const lines = [
+        'INICIALIZANDO MATRIX CAM...',
+        'CARREGANDO SENSORES ÓPTICOS...',
+        'CALIBRANDO GIROSCÓPIO...',
+        'SINCRONIZANDO REALIDADE...',
+        'SISTEMA PRONTO.'
+    ];
+    const el = document.getElementById('bootText');
+    let i = 0;
+    function nextLine() {
+        if (i >= lines.length) {
+            setTimeout(() => {
+                const splash = document.getElementById('bootSplash');
+                splash.style.transition = 'opacity 0.5s';
+                splash.style.opacity = '0';
+                setTimeout(() => { splash.remove(); callback(); }, 500);
+            }, 350);
+            return;
+        }
+        el.textContent += (i > 0 ? '\n' : '') + lines[i];
+        i++;
+        setTimeout(nextLine, 280);
+    }
+    nextLine();
+}
+
+class ProCamera {
+    constructor() {
+        this.video = document.getElementById('video');
+        this.canvas = document.getElementById('canvas');
+        this.flash = document.getElementById('flash');
+        this.stream = null;
+        this.currentFilter = 'none';
+        this.facingMode = 'environment';
+        this.mode = 'photo';
+        this.isRecording = false;
+        this.mediaRecorder = null;
+        this.recordedChunks = [];
+        this.gallery = JSON.parse(localStorage.getItem('matrixGallery') || '[]');
+        this.track = null;
+        this.timerActive = false;
+        this.timerValue = 3;
+
+        // foto esfera
+        this.sphereRows = 3;
+        this.sphereCols = 8;
+        this.sphereRowPitchOffsets = [25, 0, -25]; // topo, equador, base
+        this.sphereGrid = [];
+        this.sphereCaptureOrder = [];
+        this.sphereCurrentTargetIndex = 0;
+        this.sphereBaselineYaw = null;
+        this.sphereBaselinePitch = null;
+        this.sphereOrientationHandler = null;
+        this.sphereHasOrientation = false;
+        this.sphereEventName = null;
+        this.sphereAlignStart = null;
+        this.sphereCapturing = false;
+        this.sphereOrientationTimeout = null;
+        this.spherePxPerDeg = 9;
+        this.sphereAlignThresholdPx = 24;
+
+        this.lastFocusTap = 0;
+        this.isRefocusing = false;
+
+        // seleção automática da melhor lente traseira
+        this.bestRearDeviceId = undefined; // undefined = ainda não detectada; null = detecção falhou
+
+        // suavização do giroscópio (foto esfera)
+        this.sphereSmoothYaw = null;
+        this.sphereSmoothPitch = null;
+
+        this.init();
+    }
+    async init() {
+        await this.startCamera();
+        this.setupOrientation();
+        this.setupZoom();
+        this.bindFocusTap();
+        this.bindFocusDebug();
+        this.updateGalleryThumb();
+        setTimeout(() => { this.refocusCamera(0.5, 0.5); }, 500);
+    }
+    async startCamera() {
+        try {
+            if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+
+            if (this.facingMode === 'environment' && this.bestRearDeviceId === undefined) {
+                await this.detectBestRearCamera();
+            }
+
+            const videoConstraints = this.buildVideoConstraints();
+            const constraints = { video: videoConstraints, audio: this.mode === 'video' };
+
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (err) {
+                // se a lente escolhida falhar (removida/ocupada), tenta de novo sem deviceId fixo
+                if (videoConstraints.deviceId) {
+                    console.warn('[MatrixCam] Lente detectada falhou, tentando fallback genérico:', err);
+                    this.bestRearDeviceId = null;
+                    const fallbackConstraints = { video: this.buildVideoConstraints(), audio: this.mode === 'video' };
+                    this.stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+                } else {
+                    throw err;
+                }
+            }
+
+            this.video.srcObject = this.stream;
+            this.track = this.stream.getVideoTracks()[0];
+            this.refreshFocusCapabilities();
+            this.initImageCapture();
+        } catch(err) {
+            alert('Erro câmera: ' + err.message);
+        }
+    }
+    buildVideoConstraints() {
+        if (this.facingMode === 'environment') {
+            const base = {
+                width: { ideal: 3840 },
+                height: { ideal: 2160 },
+                advanced: [{ focusMode: 'continuous' }]
+            };
+            if (this.bestRearDeviceId) {
+                return { ...base, deviceId: { exact: this.bestRearDeviceId } };
+            }
+            return { ...base, facingMode: 'environment' };
+        }
+        return {
+            facingMode: 'user',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            advanced: [{ focusMode: 'continuous' }]
+        };
+    }
+    // Testa todas as câmeras traseiras disponíveis e escolhe a de maior resolução real de sensor
+    // (evita pegar a ultrawide ou telephoto por engano em celulares com múltiplas lentes)
+    async detectBestRearCamera() {
+        try {
+            // getUserMedia genérico primeiro, só pra liberar os labels dos dispositivos
+            const tmp = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            tmp.getTracks().forEach(t => t.stop());
+        } catch (e) {
+            console.warn('[MatrixCam] Não foi possível obter permissão inicial de câmera:', e);
+            this.bestRearDeviceId = null;
+            return;
+        }
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const allVideo = devices.filter(d => d.kind === 'videoinput');
+            const candidates = allVideo.filter(d => !/front|user|frontal|selfie/i.test(d.label));
+            const list = candidates.length ? candidates : allVideo;
+
+            let best = null, bestScore = -1;
+            for (const dev of list) {
+                try {
+                    const s = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: dev.deviceId } } });
+                    const track = s.getVideoTracks()[0];
+                    const caps = track.getCapabilities ? track.getCapabilities() : {};
+                    const w = (caps.width && caps.width.max) || 0;
+                    const h = (caps.height && caps.height.max) || 0;
+                    const score = w * h;
+                    s.getTracks().forEach(t => t.stop());
+                    console.log('[MatrixCam] Lente candidata:', dev.label || dev.deviceId, '-> máx', w + 'x' + h);
+                    if (score > bestScore) { bestScore = score; best = dev.deviceId; }
+                } catch (e) {
+                    console.warn('[MatrixCam] Lente candidata inutilizável, pulando:', dev.label || dev.deviceId, e);
+                }
+            }
+            this.bestRearDeviceId = best;
+            console.log('[MatrixCam] Lente traseira escolhida:', best || '(nenhuma - usando facingMode padrão)');
+        } catch (e) {
+            console.warn('[MatrixCam] Falha ao enumerar câmeras, usando facingMode padrão:', e);
+            this.bestRearDeviceId = null;
+        }
+    }
+    initImageCapture() {
+        this.imageCapture = null;
+        try {
+            if ('ImageCapture' in window && this.track) {
+                this.imageCapture = new ImageCapture(this.track);
+            }
+        } catch (e) {
+            console.warn('ImageCapture não suportado, usando fallback de vídeo:', e);
+            this.imageCapture = null;
+        }
+    }
+    setupZoom() {
+        const slider = document.getElementById('zoomSlider');
+        slider.addEventListener('input', async (e) => {
+            if (this.track && this.track.getCapabilities && this.track.getCapabilities().zoom) {
+                await this.track.applyConstraints({ advanced: [{ zoom: parseFloat(e.target.value) }] });
+                document.getElementById('zoomValue').textContent = parseFloat(e.target.value).toFixed(1) + 'x';
+            }
+        });
+        if (this.track && this.track.getCapabilities && this.track.getCapabilities().zoom) {
+            document.getElementById('zoomControl').style.display = 'flex';
+        }
+    }
+    // ---- FOCO ----
+    bindFocusTap() {
+        const viewfinder = document.querySelector('.viewfinder');
+        viewfinder.addEventListener('click', (e) => this.handleTapFocus(e));
+    }
+    refreshFocusCapabilities() {
+        const control = document.getElementById('focusControl');
+        const slider = document.getElementById('focusSlider');
+        control.style.display = 'flex';
+        if (!this.track || !this.track.getCapabilities) { slider.style.display = 'none'; return; }
+        const caps = this.track.getCapabilities();
+        if (caps.focusDistance) {
+            slider.style.display = 'block';
+            slider.min = caps.focusDistance.min;
+            slider.max = caps.focusDistance.max;
+            slider.step = caps.focusDistance.step || 0.01;
+            const settings = this.track.getSettings ? this.track.getSettings() : {};
+            slider.value = settings.focusDistance !== undefined ? settings.focusDistance : caps.focusDistance.min;
+            slider.oninput = async (e) => {
+                try {
+                    await this.track.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: parseFloat(e.target.value) }] });
+                    document.getElementById('focusValue').textContent = 'MF';
+                } catch(err) { /* foco manual não suportado neste dispositivo */ }
+            };
+        } else {
+            slider.style.display = 'none';
+        }
+    }
+    showFocusDebug() {
+        if (!this.track || !this.track.getCapabilities) { alert('Este navegador não expõe getCapabilities() de câmera.'); return; }
+        const caps = this.track.getCapabilities();
+        const settings = this.track.getSettings ? this.track.getSettings() : {};
+        const info = {
+            focusMode_suportado: caps.focusMode || 'não suportado',
+            focusDistance_range: caps.focusDistance || 'não suportado',
+            zoom_range: caps.zoom || 'não suportado',
+            focusMode_atual: settings.focusMode || '(não informado)',
+            focusDistance_atual: settings.focusDistance !== undefined ? settings.focusDistance : '(não informado)',
+            resolucao: (settings.width || '?') + 'x' + (settings.height || '?')
+        };
+        alert('Capacidades da câmera:\n' + JSON.stringify(info, null, 2));
+    }
+    bindFocusDebug() {
+        const label = document.getElementById('focusValue');
+        let timer = null;
+        const start = () => { timer = setTimeout(() => this.showFocusDebug(), 600); };
+        const cancel = () => { if (timer) clearTimeout(timer); };
+        label.addEventListener('touchstart', start);
+        label.addEventListener('touchend', cancel);
+        label.addEventListener('touchcancel', cancel);
+        label.addEventListener('mousedown', start);
+        label.addEventListener('mouseup', cancel);
+        label.addEventListener('mouseleave', cancel);
+    }
+    async handleTapFocus(e) {
+        if (e.target.closest('.icon-btn, .filter-chip, .mode-btn, .shutter-btn, .gallery-thumb, .zoom-control, .focus-control, .sphere-overlay, .close-btn')) return;
+        const rect = this.video.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        this.showFocusRing(e.clientX - rect.left, e.clientY - rect.top);
+        const now = Date.now();
+        if (now - this.lastFocusTap < 900 || this.isRecording) return;
+        this.lastFocusTap = now;
+        const label = document.getElementById('focusValue');
+        if (label) label.textContent = '...';
+        await this.refocusCamera(x, y);
+        if (label) label.textContent = 'AF';
+    }
+    showFocusRing(x, y) {
+        let ring = document.getElementById('focusRing');
+        if (!ring) {
+            ring = document.createElement('div');
+            ring.id = 'focusRing';
+            ring.className = 'focus-ring';
+            document.querySelector('.viewfinder').appendChild(ring);
+        }
+        ring.style.left = (x - 35) + 'px';
+        ring.style.top = (y - 35) + 'px';
+        ring.classList.remove('pulse');
+        void ring.offsetWidth;
+        ring.classList.add('pulse');
+    }
+    async refocusCamera(x, y) {
+        if (this.isRefocusing || this.isRecording || !this.track) return;
+        this.isRefocusing = true;
+        try {
+            const caps = this.track.getCapabilities ? this.track.getCapabilities() : {};
+            const advanced = [];
+            if (caps.pointsOfInterest && x !== undefined) advanced.push({ pointsOfInterest: [{ x, y }] });
+            if (advanced.length) {
+                await this.track.applyConstraints({ advanced }).catch(() => {});
+            }
+            if (caps.focusMode && caps.focusMode.includes('macro')) {
+                await this.track.applyConstraints({ advanced: [{ focusMode: 'macro' }] }).catch(() => {});
+            }
+            if (caps.focusMode && caps.focusMode.includes('manual') && caps.focusDistance) {
+                const settings = this.track.getSettings ? this.track.getSettings() : {};
+                const cur = settings.focusDistance !== undefined ? settings.focusDistance : caps.focusDistance.min;
+                const step = caps.focusDistance.step || (caps.focusDistance.max - caps.focusDistance.min) * 0.05 || 0.05;
+                const nudged = Math.min(caps.focusDistance.max, cur + step);
+                await this.track.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: nudged }] }).catch(() => {});
+                await this.track.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: cur }] }).catch(() => {});
+            } else if (caps.focusMode && caps.focusMode.includes('single-shot')) {
+                await this.track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] }).catch(() => {});
+            } else if (caps.focusMode && caps.focusMode.includes('continuous')) {
+                await this.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+            }
+            await this.restartVideoTrack();
+        } finally {
+            this.isRefocusing = false;
+        }
+    }
+    async restartVideoTrack() {
+        const zoomSlider = document.getElementById('zoomSlider');
+        const prevZoom = zoomSlider ? zoomSlider.value : null;
+        try {
+            const constraints = { video: this.buildVideoConstraints() };
+            const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const newTrack = newStream.getVideoTracks()[0];
+            if (this.stream) {
+                this.stream.getVideoTracks().forEach(t => { this.stream.removeTrack(t); t.stop(); });
+                this.stream.addTrack(newTrack);
+            } else {
+                this.stream = newStream;
+            }
+            this.video.srcObject = this.stream;
+            this.track = newTrack;
+            this.refreshFocusCapabilities();
+            this.initImageCapture();
+            if (prevZoom && this.track.getCapabilities && this.track.getCapabilities().zoom) {
+                await this.track.applyConstraints({ advanced: [{ zoom: parseFloat(prevZoom) }] }).catch(() => {});
+            }
+        } catch(err) { /* reinício da trilha não disponível neste navegador */ }
+    }
+    // ---- fim foco ----
+    setupOrientation() {
+        window.addEventListener('deviceorientation', (e) => {
+            const bar = document.getElementById('levelBar');
+            const gamma = e.gamma || 0;
+            bar.style.marginLeft = Math.max(0, Math.min(80, 40 + gamma)) + '%';
+            bar.style.background = Math.abs(gamma) < 5 ? '#00ff41' : '#ff9500';
+        });
+    }
+    setFilter(filter, btn) {
+        this.currentFilter = filter;
+        this.video.style.filter = filter;
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+    }
+    setMode(mode, btn) {
+        this.mode = mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        this.startCamera();
+    }
+    toggleFlash() {
+        this.flash.classList.add('active');
+        setTimeout(() => this.flash.classList.remove('active'), 200);
+    }
+    toggleGrid() {
+        document.getElementById('grid').classList.toggle('on');
+    }
+    toggleTimer() {
+        this.timerActive = !this.timerActive;
+        if(this.timerActive) {
+            this.timerValue = 3;
+            document.getElementById('timerBadge').style.display = 'block';
+            document.getElementById('timerBadge').textContent = '3';
+            const interval = setInterval(() => {
+                this.timerValue--;
+                if(this.timerValue <= 0) {
+                    clearInterval(interval);
+                    document.getElementById('timerBadge').style.display = 'none';
+                    this.capture();
+                    this.timerActive = false;
+                } else {
+                    document.getElementById('timerBadge').textContent = this.timerValue;
+                }
+            }, 1000);
+        }
+    }
+    capture() {
+        if(this.mode === 'photo') this.capturePhoto();
+        else {
+            if(this.isRecording) this.stopRecording();
+            else this.startRecording();
+        }
+    }
+    async capturePhoto() {
+        // flash e glitch disparam na hora, sem esperar a captura
+        this.flash.classList.add('active');
+        this.video.classList.add('glitch-active');
+        setTimeout(() => this.flash.classList.remove('active'), 150);
+        setTimeout(() => this.video.classList.remove('glitch-active'), 280);
+
+        const ctx = this.canvas.getContext('2d');
+        let drawn = false;
+
+        // Tenta captura real do sensor (mesma via da câmera nativa), pedindo a resolução máxima
+        if (this.imageCapture) {
+            try {
+                let photoSettings = {};
+                try {
+                    const caps = await this.imageCapture.getPhotoCapabilities();
+                    if (caps.imageWidth && caps.imageHeight) {
+                        photoSettings = {
+                            imageWidth: caps.imageWidth.max,
+                            imageHeight: caps.imageHeight.max
+                        };
+                    }
+                    console.log('[MatrixCam] photoCapabilities:', caps, '-> pedindo', photoSettings);
+                } catch (e) {
+                    console.warn('[MatrixCam] getPhotoCapabilities() indisponível, usando takePhoto() padrão:', e);
+                }
+                const blob = await this.imageCapture.takePhoto(photoSettings);
+                const bitmap = await createImageBitmap(blob);
+                this.canvas.width = bitmap.width;
+                this.canvas.height = bitmap.height;
+                ctx.filter = this.currentFilter;
+                ctx.drawImage(bitmap, 0, 0);
+                drawn = true;
+                console.log('[MatrixCam] Captura REAL do sensor:', bitmap.width + 'x' + bitmap.height);
+            } catch (e) {
+                console.warn('[MatrixCam] takePhoto() falhou, caindo pro fallback de vídeo:', e);
+            }
+        }
+
+        // Fallback: captura do frame de vídeo (método antigo)
+        if (!drawn) {
+            this.canvas.width = this.video.videoWidth;
+            this.canvas.height = this.video.videoHeight;
+            ctx.filter = this.currentFilter;
+            ctx.drawImage(this.video, 0, 0);
+            console.log('[MatrixCam] Captura por FALLBACK (frame de vídeo):', this.canvas.width + 'x' + this.canvas.height);
+        }
+
+        const dataUrl = this.canvas.toDataURL('image/jpeg', 0.95);
+        this.gallery.unshift({ type: 'photo', src: dataUrl, timestamp: Date.now() });
+        localStorage.setItem('matrixGallery', JSON.stringify(this.gallery));
+        this.updateGalleryThumb();
+    }
+    startRecording() {
+        this.recordedChunks = [];
+        this.mediaRecorder = new MediaRecorder(this.stream);
+        this.mediaRecorder.ondataavailable = (e) => { if(e.data.size > 0) this.recordedChunks.push(e.data); };
+        this.mediaRecorder.onstop = () => {
+            const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            this.gallery.unshift({ type: 'video', src: url, timestamp: Date.now() });
+            localStorage.setItem('matrixGallery', JSON.stringify(this.gallery));
+            this.updateGalleryThumb();
+        };
+        this.mediaRecorder.start();
+        this.isRecording = true;
+        document.getElementById('shutterBtn').classList.add('recording');
+    }
+    stopRecording() {
+        this.mediaRecorder.stop();
+        this.isRecording = false;
+        document.getElementById('shutterBtn').classList.remove('recording');
+    }
+    switchCamera() {
+        this.facingMode = this.facingMode === 'environment' ? 'user' : 'environment';
+        this.startCamera();
+    }
+    // Força uma nova detecção de lentes traseiras (útil se o usuário achar que pegou a lente errada)
+    async redetectRearLens() {
+        this.bestRearDeviceId = undefined;
+        if (this.facingMode === 'environment') await this.startCamera();
+    }
+    updateGalleryThumb() {
+        const thumb = document.querySelector('.gallery-thumb');
+        if(this.gallery.length > 0) {
+            const last = this.gallery[0];
+            if (last.type === 'video') {
+                thumb.innerHTML = '🎬';
+            } else {
+                thumb.innerHTML = `<img src="${last.src}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
+            }
+        }
+    }
+    openGallery() {
+        const modal = document.getElementById('galleryModal');
+        const grid = document.getElementById('galleryGrid');
+        grid.innerHTML = this.gallery.map((item, i) => `
+            <div class="gallery-item" onclick="camera.viewItem(${i})">
+                ${item.type === 'video' ? `<video src="${item.src}"></video>` : `<img src="${item.src}">`}
+                ${item.type === 'sphere' ? `<div class="badge-360">360°</div>` : ''}
+                <button class="delete-btn" onclick="event.stopPropagation();camera.deleteItem(${i})">✕</button>
+            </div>
+        `).join('');
+        modal.classList.add('active');
+    }
+    closeGallery() { document.getElementById('galleryModal').classList.remove('active'); }
+    viewItem(i) {
+        const item = this.gallery[i];
+        const viewer = document.getElementById('viewer');
+        const content = document.getElementById('viewerContent');
+        if (item.type === 'video') {
+            content.innerHTML = `<video src="${item.src}" controls autoplay loop></video>`;
+        } else if (item.type === 'sphere') {
+            content.innerHTML = `<div class="viewer-pano"><img src="${item.src}"></div>
+                <div class="viewer-hint">Arraste para o lado para ver em panorâmica →</div>
+                <button class="sphere-3d-btn" id="sphere3dBtn">🌐 Ver em 3D</button>`;
+            const btn = document.getElementById('sphere3dBtn');
+            if (btn) btn.addEventListener('click', () => this.open3DSphereViewer(item.src));
+        } else {
+            content.innerHTML = `<img src="${item.src}">`;
+        }
+        viewer.classList.add('active');
+    }
+    closeViewer() {
+        document.getElementById('viewer').classList.remove('active');
+        document.getElementById('viewerContent').innerHTML = '';
+    }
+    deleteItem(i) {
+        this.gallery.splice(i, 1);
+        localStorage.setItem('matrixGallery', JSON.stringify(this.gallery));
+        this.openGallery();
+        this.updateGalleryThumb();
+    }
+
+    // ================= FOTO ESFERA =================
+    async startSphere() {
+        this.sphereGrid = Array.from({ length: this.sphereRows }, () => Array(this.sphereCols).fill(null));
+        this.sphereCaptureOrder = this.buildSphereCaptureOrder();
+        this.sphereCurrentTargetIndex = 0;
+        this.sphereBaselineYaw = null;
+        this.sphereBaselinePitch = null;
+        this.sphereHasOrientation = false;
+        this.sphereAlignStart = null;
+        this.sphereCapturing = false;
+        this.sphereSmoothYaw = null;
+        this.sphereSmoothPitch = null;
+        this.buildSphereMinigrid();
+        this.updateSphereText();
+        document.getElementById('sphereProgress').style.width = '0%';
+        document.getElementById('sphereTarget').style.display = 'block';
+        document.getElementById('sphereArrow').style.display = 'none';
+        document.getElementById('sphereOverlay').classList.add('active');
+
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const res = await DeviceOrientationEvent.requestPermission();
+                if (res === 'granted') {
+                    this.setupSphereOrientationListener();
+                } else {
+                    document.getElementById('sphereText').textContent = 'Permissão de movimento negada. Toque em 📸 manualmente em cada ponto.';
+                }
+            } catch(e) {
+                document.getElementById('sphereText').textContent = 'Não foi possível acessar o giroscópio. Toque em 📸 manualmente.';
+            }
+        } else {
+            this.setupSphereOrientationListener();
+        }
+    }
+    buildSphereCaptureOrder() {
+        // equador primeiro, depois topo, depois base — igual câmeras nativas
+        const order = [];
+        const mid = Math.floor(this.sphereRows / 2);
+        const rowOrder = [mid];
+        for (let r = 0; r < this.sphereRows; r++) if (!rowOrder.includes(r)) rowOrder.push(r);
+        rowOrder.forEach(r => {
+            for (let c = 0; c < this.sphereCols; c++) order.push({ row: r, col: c });
+        });
+        return order;
+    }
+    buildSphereMinigrid() {
+        const grid = document.getElementById('sphereMinigrid');
+        grid.innerHTML = '';
+        for (let r = 0; r < this.sphereRows; r++) {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'sphere-minirow';
+            for (let c = 0; c < this.sphereCols; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'sphere-minicell';
+                cell.id = `sphereCell_${r}_${c}`;
+                rowEl.appendChild(cell);
+            }
+            grid.appendChild(rowEl);
+        }
+        this.updateSphereMinigridHighlight();
+    }
+    updateSphereMinigridHighlight() {
+        document.querySelectorAll('.sphere-minicell').forEach(el => el.classList.remove('next'));
+        const target = this.sphereCaptureOrder[this.sphereCurrentTargetIndex];
+        if (target) {
+            const cell = document.getElementById(`sphereCell_${target.row}_${target.col}`);
+            if (cell) cell.classList.add('next');
+        }
+    }
+    setupSphereOrientationListener() {
+        const supportsAbsolute = 'ondeviceorientationabsolute' in window;
+        this.sphereEventName = supportsAbsolute ? 'deviceorientationabsolute' : 'deviceorientation';
+        this.sphereOrientationHandler = (e) => this.handleSphereOrientation(e);
+        window.addEventListener(this.sphereEventName, this.sphereOrientationHandler);
+        clearTimeout(this.sphereOrientationTimeout);
+        this.sphereOrientationTimeout = setTimeout(() => {
+            if (!this.sphereHasOrientation) {
+                document.getElementById('sphereText').textContent = 'Giroscópio não detectado. Toque em 📸 manualmente em cada ponto.';
+            }
+        }, 1500);
+    }
+    // bússola compensada por inclinação — funciona corretamente com o celular na vertical
+    computeTiltCompensatedHeading(alpha, beta, gamma) {
+        const aR = alpha * Math.PI / 180;
+        const bR = beta * Math.PI / 180;
+        const gR = gamma * Math.PI / 180;
+        const cA = Math.cos(aR), sA = Math.sin(aR);
+        const cB = Math.cos(bR);
+        const sB = Math.sin(bR);
+        const cG = Math.cos(gR), sG = Math.sin(gR);
+        const Vx = -cA * sG - sA * sB * cG;
+        const Vy = -sA * sG + cA * sB * cG;
+        let heading = Math.atan2(Vx, Vy) * 180 / Math.PI;
+        if (heading < 0) heading += 360;
+        return heading;
+    }
+    handleSphereOrientation(e) {
+        let rawYaw = null, rawPitch = null;
+        if (typeof e.webkitCompassHeading === 'number') {
+            rawYaw = e.webkitCompassHeading;
+            rawPitch = typeof e.beta === 'number' ? e.beta : 90;
+        } else if (typeof e.alpha === 'number' && typeof e.beta === 'number' && typeof e.gamma === 'number') {
+            rawYaw = this.computeTiltCompensatedHeading(e.alpha, e.beta, e.gamma);
+            rawPitch = e.beta;
+        }
+        if (rawYaw === null || rawPitch === null) return;
+        this.sphereHasOrientation = true;
+
+        // Filtro de suavização (média móvel exponencial) — reduz o tremor natural
+        // do giroscópio/magnetômetro que impedia o alvo de ficar parado o suficiente pra travar.
+        const smoothing = 0.25;
+        if (this.sphereSmoothYaw === null) {
+            this.sphereSmoothYaw = rawYaw;
+            this.sphereSmoothPitch = rawPitch;
+        } else {
+            // trata a virada 0°/360° antes de suavizar, senão o filtro "pula" nessa borda
+            const yawDelta = ((rawYaw - this.sphereSmoothYaw + 540) % 360) - 180;
+            this.sphereSmoothYaw = (this.sphereSmoothYaw + yawDelta * smoothing + 360) % 360;
+            this.sphereSmoothPitch += (rawPitch - this.sphereSmoothPitch) * smoothing;
+        }
+        const yaw = this.sphereSmoothYaw;
+        const pitch = this.sphereSmoothPitch;
+
+        if (this.sphereBaselineYaw === null) {
+            this.sphereBaselineYaw = yaw;
+            this.sphereBaselinePitch = pitch;
+        }
+
+        const target = this.sphereCaptureOrder[this.sphereCurrentTargetIndex];
+        if (!target) return;
+
+        const targetYawOffset = (target.col - Math.floor(this.sphereCols / 2)) * (360 / this.sphereCols);
+        const targetPitchOffset = this.sphereRowPitchOffsets[target.row];
+
+        const yawDiff = ((yaw - this.sphereBaselineYaw - targetYawOffset + 540) % 360) - 180;
+        const pitchDiff = (pitch - this.sphereBaselinePitch) - targetPitchOffset;
+
+        const rawDx = yawDiff * this.spherePxPerDeg;
+        const rawDy = -pitchDiff * this.spherePxPerDeg;
+        const maxR = 140;
+        const dx = Math.max(-maxR, Math.min(maxR, rawDx));
+        const dy = Math.max(-maxR, Math.min(maxR, rawDy));
+
+        const targetEl = document.getElementById('sphereTarget');
+        const arrowEl = document.getElementById('sphereArrow');
+        const outOfRange = Math.abs(rawDx) > maxR || Math.abs(rawDy) > maxR;
+
+        if (outOfRange) {
+            targetEl.style.display = 'none';
+            arrowEl.style.display = 'block';
+            const angle = Math.atan2(rawDy, rawDx) * 180 / Math.PI + 90;
+            arrowEl.style.transform = `translate(-50%,-140%) rotate(${angle}deg)`;
+            this.sphereAlignStart = null;
+        } else {
+            arrowEl.style.display = 'none';
+            targetEl.style.display = 'block';
+            targetEl.style.left = `calc(50% + ${dx}px)`;
+            targetEl.style.top = `calc(50% + ${dy}px)`;
+            const aligned = Math.abs(dx) < this.sphereAlignThresholdPx && Math.abs(dy) < this.sphereAlignThresholdPx;
+            targetEl.classList.toggle('aligned', aligned);
+
+            if (aligned && !this.sphereCapturing) {
+                if (!this.sphereAlignStart) {
+                    this.sphereAlignStart = Date.now();
+                } else if (Date.now() - this.sphereAlignStart > 300) {
+                    this.sphereCapturing = true;
+                    this.captureSphereShot();
+                }
+            } else if (!aligned) {
+                this.sphereAlignStart = null;
+            }
+        }
+    }
+    updateSphereText() {
+        const total = this.sphereCaptureOrder.length;
+        document.getElementById('sphereText').textContent =
+            `Foto ${Math.min(this.sphereCurrentTargetIndex + 1, total)} de ${total} — alinhe o círculo amarelo com a mira`;
+    }
+    captureSphereShot() {
+        const target = this.sphereCaptureOrder[this.sphereCurrentTargetIndex];
+        if (!target) return;
+        this.canvas.width = 480;
+        this.canvas.height = Math.round(480 * (this.video.videoHeight / this.video.videoWidth || 0.75));
+        const ctx = this.canvas.getContext('2d');
+        ctx.filter = this.currentFilter;
+        ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+        const dataUrl = this.canvas.toDataURL('image/jpeg', 0.85);
+        this.sphereGrid[target.row][target.col] = dataUrl;
+
+        const cell = document.getElementById(`sphereCell_${target.row}_${target.col}`);
+        if (cell) {
+            cell.classList.remove('next');
+            cell.classList.add('done');
+            cell.style.backgroundImage = `url(${dataUrl})`;
+        }
+
+        document.getElementById('sphereProgress').style.width =
+            Math.round(((this.sphereCurrentTargetIndex + 1) / this.sphereCaptureOrder.length) * 100) + '%';
+        this.flash.classList.add('active');
+        setTimeout(() => this.flash.classList.remove('active'), 120);
+
+        this.sphereAlignStart = null;
+        setTimeout(() => { this.sphereCapturing = false; }, 600);
+
+        this.sphereCurrentTargetIndex++;
+        this.updateSphereMinigridHighlight();
+
+        if (this.sphereCurrentTargetIndex >= this.sphereCaptureOrder.length) {
+            this.finishSphere();
+        } else {
+            this.updateSphereText();
+        }
+    }
+    finishSphereEarly() {
+        if (this.sphereCurrentTargetIndex === 0) { this.cancelSphere(); return; }
+        this.finishSphere();
+    }
+    finishSphere() {
+        document.getElementById('sphereText').textContent = 'Montando a foto esfera...';
+        const loadImg = (src) => new Promise((resolve) => {
+            if (!src) { resolve(null); return; }
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = src;
+        });
+        const flat = [];
+        this.sphereGrid.forEach(row => row.forEach(cell => flat.push(cell)));
+        Promise.all(flat.map(loadImg)).then((loaded) => {
+            const sample = loaded.find(i => i);
+            if (!sample) { this.cancelSphere(); return; }
+            const w = sample.width, h = sample.height;
+            const rowsUsed = this.sphereGrid.map(row => row.some(c => c));
+            const usedRowIndexes = rowsUsed.map((used, i) => used ? i : -1).filter(i => i >= 0);
+            const stitchCanvas = document.createElement('canvas');
+            stitchCanvas.width = w * this.sphereCols;
+            stitchCanvas.height = h * usedRowIndexes.length;
+            const ctx = stitchCanvas.getContext('2d');
+            usedRowIndexes.forEach((r, ri) => {
+                for (let c = 0; c < this.sphereCols; c++) {
+                    const idx = r * this.sphereCols + c;
+                    const img = loaded[idx];
+                    if (img) {
+                        ctx.drawImage(img, c * w, ri * h, w, h);
+                    } else {
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(c * w, ri * h, w, h);
+                    }
+                }
+            });
+            const stitched = stitchCanvas.toDataURL('image/jpeg', 0.85);
+            this.gallery.unshift({ type: 'sphere', src: stitched, timestamp: Date.now() });
+            try {
+                localStorage.setItem('matrixGallery', JSON.stringify(this.gallery));
+            } catch (e) {
+                alert('Foto esfera criada, mas o armazenamento local está cheio. Apague itens antigos da galeria.');
+            }
+            this.updateGalleryThumb();
+            this.cancelSphere();
+        });
+    }
+    cancelSphere() {
+        if (this.sphereOrientationHandler) {
+            window.removeEventListener(this.sphereEventName || 'deviceorientation', this.sphereOrientationHandler);
+            this.sphereOrientationHandler = null;
+        }
+        clearTimeout(this.sphereOrientationTimeout);
+        document.getElementById('sphereOverlay').classList.remove('active');
+        document.getElementById('sphereTarget').style.display = 'none';
+        document.getElementById('sphereArrow').style.display = 'none';
+        this.sphereGrid = [];
+        this.sphereCaptureOrder = [];
+        this.sphereCurrentTargetIndex = 0;
+        this.sphereBaselineYaw = null;
+        this.sphereBaselinePitch = null;
+        this.sphereAlignStart = null;
+        this.sphereCapturing = false;
+        this.sphereSmoothYaw = null;
+        this.sphereSmoothPitch = null;
+    }
+
+    // ================= VISUALIZADOR 3D (foto esfera imersiva) =================
+    open3DSphereViewer(src) {
+        if (typeof THREE === 'undefined') { alert('Biblioteca 3D não carregou. Verifique sua conexão de internet.'); return; }
+        const container = document.createElement('div');
+        container.style.cssText = 'position:fixed;inset:0;background:#000;z-index:200;';
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;z-index:201;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;cursor:pointer;';
+        document.body.appendChild(container);
+        container.appendChild(closeBtn);
+
+        const scene = new THREE.Scene();
+        const camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1100);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        const geometry = new THREE.SphereGeometry(500, 60, 40);
+        geometry.scale(-1, 1, 1);
+        const texture = new THREE.TextureLoader().load(src);
+        const material = new THREE.MeshBasicMaterial({ map: texture });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        let lon = 0, lat = 0, isDown = false, lastX = 0, lastY = 0;
+        const onDown = (x, y) => { isDown = true; lastX = x; lastY = y; };
+        const onMove = (x, y) => {
+            if (!isDown) return;
+            lon -= (x - lastX) * 0.15;
+            lat += (y - lastY) * 0.15;
+            lat = Math.max(-85, Math.min(85, lat));
+            lastX = x; lastY = y;
+        };
+        const onUp = () => { isDown = false; };
+
+        renderer.domElement.addEventListener('mousedown', (e) => onDown(e.clientX, e.clientY));
+        renderer.domElement.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', onUp);
+        renderer.domElement.addEventListener('touchstart', (e) => onDown(e.touches[0].clientX, e.touches[0].clientY));
+        renderer.domElement.addEventListener('touchmove', (e) => { onMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+        renderer.domElement.addEventListener('touchend', onUp);
+
+        let animId;
+        function animate() {
+            animId = requestAnimationFrame(animate);
+            const phi = THREE.MathUtils.degToRad(90 - lat);
+            const theta = THREE.MathUtils.degToRad(lon);
+            const target = new THREE.Vector3(
+                500 * Math.sin(phi) * Math.cos(theta),
+                500 * Math.cos(phi),
+                500 * Math.sin(phi) * Math.sin(theta)
+            );
+            camera3d.lookAt(target);
+            renderer.render(scene, camera3d);
+        }
+        animate();
+
+        function onResize() {
+            camera3d.aspect = window.innerWidth / window.innerHeight;
+            camera3d.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', onResize);
+
+        function cleanup() {
+            cancelAnimationFrame(animId);
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('mouseup', onUp);
+            renderer.dispose();
+            document.body.removeChild(container);
+        }
+        closeBtn.onclick = cleanup;
+    }
+}
+let camera;
+let matrixRain;
+runBootSequence(() => {
+    matrixRain = new MatrixRain('matrixRain');
+    camera = new ProCamera();
+});
+</script>
+</body>
+</html>

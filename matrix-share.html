@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Matrix Share</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #000; color: #00ff00; font-family: 'Courier New', monospace; height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center; }
+
+        .header { width: 100%; max-width: 600px; display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #00ff00; text-shadow: 0 0 10px #00ff00; }
+        .header h1 { font-size: 18px; margin: 0; }
+        .header button { background: transparent; border: 1px solid #ff0000; color: #ff0000; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+
+        .container { width: 100%; max-width: 600px; padding: 15px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* 🔥 CONEXÃO */
+        .connect-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        .connect-box input { flex: 1; background: #111; border: 1px solid #00ff00; color: #00ff00; padding: 10px; border-radius: 6px; font-size: 14px; font-family: inherit; }
+        .connect-box button { background: #00ff00; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: inherit; }
+        .connect-box button:hover { box-shadow: 0 0 20px rgba(0,255,0,0.5); }
+
+        /* 🔥 ÁREA DE ARRASTAR E SOLTAR */
+        #dropZone {
+            flex: 1; border: 2px dashed #00ff00; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; text-align: center; transition: 0.3s;
+            background: rgba(0,255,0,0.03);
+            min-height: 200px; overflow-y: auto;
+        }
+        #dropZone.dragover { background: rgba(0,255,0,0.2); border-color: #00ffff; box-shadow: inset 0 0 30px rgba(0,255,0,0.2); }
+
+        /* 🔥 LISTA DE ARQUIVOS RECEBIDOS/ENVIADOS */
+        .file-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,0,0.05); border: 1px solid rgba(0,255,0,0.2);
+            border-radius: 6px; padding: 8px 12px; margin: 4px 0; width: 100%;
+            font-size: 12px;
+        }
+        .file-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item .size { color: #aaa; margin-left: 10px; }
+        .file-item .badge { color: #aaa; font-size: 9px; margin-left: 10px; }
+
+        #statusMsg { margin-top: 10px; font-size: 12px; color: #888; text-align: center; }
+        .highlight { color: #00ffff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⬢ MATRIX SHARE</h1>
+        <button onclick="window.location.href='/nave.html'">✕ Fechar</button>
+    </div>
+
+    <div class="container">
+        <div class="connect-box">
+            <input type="text" id="roomInput" placeholder="Código da Sala (ex: MATRIX2026)" value="MATRIX-2026">
+            <button id="connectBtn">🔗 CONECTAR</button>
+        </div>
+        <div id="statusMsg">Aguardando conexão...</div>
+
+        <div id="dropZone">
+            <div style="font-size: 40px; margin-bottom: 10px;">📂</div>
+            <div style="font-size: 14px; color: #aaa;">Arraste arquivos ou pastas para cá</div>
+            <div style="font-size: 11px; color: #666; margin-top: 5px;">Os arquivos serão enviados instantaneamente para a outra pessoa.</div>
+            <div id="fileList" style="width: 100%; margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 🔥 CONFIGURAÇÃO DO PEER (WebRTC)
+        const roomInput = document.getElementById('roomInput');
+        const connectBtn = document.getElementById('connectBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const dropZone = document.getElementById('dropZone');
+        const fileList = document.getElementById('fileList');
+
+        let peerConnection = null;
+        let dataChannel = null;
+        let isHost = false;
+        let roomCode = "";
+
+        // Servidor STUN (Para fazer o "buraco" na rede e conectar as duas pessoas)
+        const rtcConfig = {
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+        };
+
+        // 🔥 1. INICIAR UMA SALA (Host)
+        async function createRoom() {
+            roomCode = roomInput.value.trim();
+            if(!roomCode) { statusMsg.innerText = "⚠️ Digite um código para a sala."; return; }
+
+            statusMsg.innerText = `📡 Criando sala ${roomCode}...`;
+
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            dataChannel = peerConnection.createDataChannel("MatrixShareChannel");
+            setupDataChannel(dataChannel);
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            // Simula o compartilhamento do código (Na vida real, você usaria um servidor Signaling)
+            // Aqui, simulamos que o usuário copiou o código e mandou para o amigo.
+            statusMsg.innerHTML = `✅ Sala criada! Compartilhe o código: <span class="highlight">${roomCode}</span>`;
+            alert(`✅ Sala criada! Envie o código "${roomCode}" para a outra pessoa abrir.`);
+
+            // Espera a resposta da outra pessoa
+            peerConnection.oniceconnectionstatechange = () => {
+                if(peerConnection.iceConnectionState === 'connected') {
+                    statusMsg.innerText = "🟢 Conexão estabelecida! Arraste os arquivos.";
+                }
+            };
+        }
+
+        // 🔥 2. ENTRAR EM UMA SALA (Client)
+        async function joinRoom() {
+            roomCode = roomInput.value.trim();
+            if(!roomCode) { statusMsg.innerText = "⚠️ Digite o código da sala."; return; }
+
+            statusMsg.innerText = `📡 Entrando na sala ${roomCode}...`;
+
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            peerConnection.ondatachannel = (event) => {
+                dataChannel = event.channel;
+                setupDataChannel(dataChannel);
+            };
+
+            // Para simplificar, geramos uma oferta falsa para o host aceitar.
+            // Na prática real, você usaria um "Signaling Server" (Ex: Socket.io) para trocar as ofertas.
+            // Como estamos simulando, vamos apenas simular a conexão.
+            statusMsg.innerHTML = `🟢 Conectado à sala! Pronto para receber arquivos.`;
+        }
+
+        // 🔥 3. CONFIGURAR O CANAL DE DADOS
+        function setupDataChannel(channel) {
+            channel.onopen = () => {
+                statusMsg.innerText = "🟢 Canal de dados aberto! Arraste os arquivos.";
+            };
+
+            channel.onmessage = (event) => {
+                const data = event.data;
+                // Se for um arquivo (blob), cria um link para download
+                if (data instanceof Blob) {
+                    const url = URL.createObjectURL(data);
+                    const name = data.name || "arquivo_recebido.bin";
+                    const size = (data.size / 1024).toFixed(2);
+
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.innerHTML = `
+                        <span class="badge">📥 RECEBIDO</span>
+                        <span class="name">${name}</span>
+                        <span class="size">${size} KB</span>
+                        <a href="${url}" download="${name}" style="color:#00ff00; text-decoration:none;">⬇️</a>
+                    `;
+                    fileList.prepend(div);
+                    statusMsg.innerText = `✅ Arquivo recebido: ${name}`;
+                } else {
+                    statusMsg.innerText = `📩 Mensagem: ${data}`;
+                }
+            };
+        }
+
+        // 🔥 4. DRAG AND DROP (Arrastar e Soltar Arquivos)
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length === 0) return;
+
+            if (!dataChannel || dataChannel.readyState !== 'open') {
+                statusMsg.innerText = "⚠️ Nenhuma conexão ativa. Conecte-se primeiro.";
+                return;
+            }
+
+            for (let file of files) {
+                // Envia o arquivo (Blob)
+                dataChannel.send(file);
+
+                const size = (file.size / 1024).toFixed(2);
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <span class="badge">📤 ENVIADO</span>
+                    <span class="name">${file.name}</span>
+                    <span class="size">${size} KB</span>
+                `;
+                fileList.prepend(div);
+            }
+            statusMsg.innerText = `🚀 ${files.length} arquivo(s) enviados!`;
+        });
+
+        // 🔥 BOTÃO DE CONECTAR
+        connectBtn.addEventListener('click', () => {
+            // Simula criação de sala. Na versão real, você usaria um prompt para escolher se é Host ou Client.
+            if(!roomInput.value) { alert("Digite um código"); return; }
+
+            // Simula a criação da sala
+            createRoom();
+        });
+
+        statusMsg.innerText = "📡 Clique em CONECTAR para iniciar a sala.";
+    </script>
+</body>
+</html>

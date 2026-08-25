@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Matrix Bússola</title>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-bright: #7dffb0;
+            --neon-dim: #00b32d;
+            --neon-cyan: #00f0ff;
+            --bg: #000;
+            --panel: rgba(0, 10, 4, 0.55);
+            --border: rgba(0, 255, 65, 0.25);
+            --glass-blur: blur(16px);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: radial-gradient(ellipse at 50% 20%, #041a08 0%, #010502 55%, #000 100%);
+            color: var(--neon);
+            font-family: 'Courier New', monospace;
+            height: 100dvh; width: 100dvw; overflow: hidden;
+            position: fixed; -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: manipulation;
+        }
+
+        .compass-container {
+            display: flex; flex-direction: column;
+            height: 100dvh; width: 100dvw;
+            max-width: 500px; margin: 0 auto;
+            padding: 8px; gap: 8px;
+            perspective: 900px;
+        }
+
+        /* ============ HEADER ============ */
+        .compass-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 14px; background: var(--panel);
+            backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+            flex-shrink: 0;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .compass-title {
+            font-size: 12px; font-weight: bold; letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--neon), 0 0 22px rgba(0,255,65,0.4);
+        }
+        .compass-status {
+            display: flex; align-items: center; gap: 4px;
+            font-size: 8px; color: var(--neon-cyan);
+        }
+        .compass-status .dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--neon); box-shadow: 0 0 8px var(--neon);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .compass-close {
+            background: rgba(255,59,59,0.08); border: 1px solid #ff3b3b;
+            color: #ff3b3b; padding: 3px 10px; border-radius: 8px;
+            cursor: pointer; font-family: inherit; font-size: 10px;
+            box-shadow: 0 0 10px rgba(255,59,59,0.2);
+        }
+        .compass-close:active { transform: scale(0.92); }
+
+        /* ============ ÁREA 3D DA BÚSSOLA ============ */
+        .compass-area {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            position: relative;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        .compass-disc-wrap {
+            position: relative;
+            width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            will-change: transform;
+            transition: transform 0.15s ease-out;
+        }
+        /* Bisel metálico externo — dá volume 3D ao anel */
+        .compass-bezel {
+            position: absolute; inset: 6%;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg,
+                rgba(0,255,65,0.05), rgba(0,255,65,0.25), rgba(0,255,65,0.05),
+                rgba(0,255,65,0.3), rgba(0,255,65,0.05), rgba(0,255,65,0.25),
+                rgba(0,255,65,0.05));
+            box-shadow:
+                0 0 40px rgba(0,255,65,0.15),
+                inset 0 4px 12px rgba(255,255,255,0.08),
+                inset 0 -6px 16px rgba(0,0,0,0.7);
+            transform: translateZ(-8px);
+            pointer-events: none;
+        }
+        /* Highlight especular que "varre" o disco — simula luz refletindo (RTX-like) */
+        .specular-sweep {
+            position: absolute; inset: 8%;
+            border-radius: 50%;
+            background: linear-gradient(120deg,
+                transparent 30%, rgba(255,255,255,0.12) 45%,
+                rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.12) 55%, transparent 70%);
+            transform: translateZ(2px) rotate(0deg);
+            animation: sweep 5s linear infinite;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+        @keyframes sweep {
+            0% { transform: translateZ(2px) rotate(0deg); }
+            100% { transform: translateZ(2px) rotate(360deg); }
+        }
+        #compassCanvas {
+            position: relative; width: 100%; height: 100%;
+            transform: translateZ(6px);
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.6));
+        }
+
+        /* Ponto de luz ambiente fixo — reforça sensação de iluminação global */
+        .ambient-glow {
+            position: absolute; top: 12%; left: 28%;
+            width: 40%; height: 40%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%);
+            border-radius: 50%; filter: blur(10px);
+            transform: translateZ(4px);
+            pointer-events: none;
+        }
+
+        /* ============ READOUT ============ */
+        .compass-readout {
+            text-align: center; padding: 12px;
+            border: 1px solid var(--border); border-radius: 14px;
+            background: var(--panel);
+            backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+            flex-shrink: 0;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .compass-direction {
+            font-size: 30px; font-weight: bold;
+            background: linear-gradient(180deg, var(--neon-bright), var(--neon));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            text-shadow: 0 0 30px rgba(0,255,65,0.5);
+            filter: drop-shadow(0 0 12px rgba(0,255,65,0.4));
+        }
+        .compass-degrees {
+            font-size: 14px; color: rgba(0,255,65,0.65);
+            margin-top: 2px;
+        }
+        .compass-coords {
+            font-size: 10px; color: rgba(0,255,65,0.45);
+            margin-top: 4px; letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="compass-container">
+        <div class="compass-header">
+            <span class="compass-title">🧭 MATRIX BÚSSOLA</span>
+            <span class="compass-status"><span class="dot"></span>GPS ATIVO</span>
+            <button class="compass-close" onclick="window.location.href='/tools.html'">✕</button>
+        </div>
+
+        <div class="compass-area" id="compassArea">
+            <div class="compass-disc-wrap" id="discWrap">
+                <div class="compass-bezel"></div>
+                <div class="ambient-glow"></div>
+                <canvas id="compassCanvas"></canvas>
+                <div class="specular-sweep"></div>
+            </div>
+        </div>
+
+        <div class="compass-readout">
+            <div class="compass-direction" id="directionText">N</div>
+            <div class="compass-degrees" id="degreesText">0°</div>
+            <div class="compass-coords" id="coordsText">Lat: -- | Lng: --</div>
+        </div>
+    </div>
+
+<script>
+// ================= BÚSSOLA 3D =================
+const canvas = document.getElementById('compassCanvas');
+const ctx = canvas.getContext('2d');
+const directionEl = document.getElementById('directionText');
+const degreesEl = document.getElementById('degreesText');
+const coordsEl = document.getElementById('coordsText');
+const discWrap = document.getElementById('discWrap');
+
+let currentHeading = 0;
+let targetHeading = 0;
+let myLat = null;
+let myLng = null;
+
+// Tilt 3D do disco (parallax) — reage ao giroscópio ou ao mouse no desktop
+let tiltX = 0, tiltY = 0;
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// GPS
+if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(
+        (pos) => {
+            myLat = pos.coords.latitude;
+            myLng = pos.coords.longitude;
+            coordsEl.textContent = `Lat: ${myLat.toFixed(4)} | Lng: ${myLng.toFixed(4)}`;
+        },
+        () => { coordsEl.textContent = 'Lat: -- | Lng: --'; },
+        { enableHighAccuracy: true }
+    );
+}
+
+// Orientação do dispositivo — heading + tilt 3D
+if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', (e) => {
+        if (e.alpha !== null) targetHeading = 360 - e.alpha;
+        if (e.beta !== null && e.gamma !== null) {
+            tiltX = Math.max(-14, Math.min(14, (e.gamma) * 0.4));
+            tiltY = Math.max(-14, Math.min(14, (e.beta - 45) * 0.25));
+        }
+    }, true);
+}
+
+// Desktop fallback: mouse controla heading + tilt
+document.addEventListener('mousemove', (e) => {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    if (!('ontouchstart' in window)) {
+        targetHeading = (Math.atan2(y, x) * 180 / Math.PI) + 90;
+        if (targetHeading < 0) targetHeading += 360;
+    }
+    tiltX = Math.max(-14, Math.min(14, (x / rect.width) * 28));
+    tiltY = Math.max(-14, Math.min(14, (y / rect.height) * -28));
+});
+
+function lerpAngle(current, target, factor) {
+    let diff = ((target - current + 540) % 360) - 180;
+    return current + diff * factor;
+}
+function lerp(a, b, f) {
+    let diff = b - a;
+    if(diff > 180) diff -= 360;
+    if(diff < -180) diff += 360;
+    return a + diff * f;
+}
+
+let smoothTiltX = 0, smoothTiltY = 0;
+
+function draw() {
+    requestAnimationFrame(draw);
+
+    currentHeading = lerpAngle(currentHeading, targetHeading, 0.08);
+    if(currentHeading < 0) currentHeading += 360;
+    if(currentHeading >= 360) currentHeading -= 360;
+    smoothTiltX = lerp(smoothTiltX, tiltX, 0.06);
+    smoothTiltY = lerp(smoothTiltY, tiltY, 0.06);
+
+    // Tilt 3D real do painel inteiro (parallax RTX-like)
+    discWrap.style.transform =
+        `rotateX(${smoothTiltY}deg) rotateY(${smoothTiltX}deg)`;
+
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    const centerX = w / 2, centerY = h / 2;
+    const radius = Math.min(w, h) / 2 - 34;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // ---- DISCO METÁLICO (base com "iluminação global" simulada) ----
+    const discGrad = ctx.createRadialGradient(
+        centerX - radius * 0.3, centerY - radius * 0.35, radius * 0.1,
+        centerX, centerY, radius * 1.05
+    );
+    discGrad.addColorStop(0, 'rgba(20, 60, 30, 0.55)');
+    discGrad.addColorStop(0.5, 'rgba(4, 20, 8, 0.6)');
+    discGrad.addColorStop(1, 'rgba(0, 4, 0, 0.85)');
+    ctx.fillStyle = discGrad;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate((-currentHeading * Math.PI) / 180);
+    ctx.rotate(-Math.PI / 2);
+
+    // Círculo externo com glow duplo (bloom)
+    ctx.shadowColor = '#00ff41';
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = 'rgba(0,255,65,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = 'rgba(0,255,65,0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.7, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Marcações
+    for (let i = 0; i < 360; i += 15) {
+        const angle = (i * Math.PI) / 180;
+        const isCardinal = i % 90 === 0;
+        const isMajor = i % 30 === 0;
+        const markLength = isCardinal ? 16 : isMajor ? 10 : 5;
+        const outerR = radius - 5;
+        const innerR = outerR - markLength;
+
+        ctx.strokeStyle = isCardinal ? '#7dffb0' : isMajor ? 'rgba(0,255,65,0.65)' : 'rgba(0,255,65,0.3)';
+        ctx.lineWidth = isCardinal ? 3 : 1.5;
+        if (isCardinal) { ctx.shadowColor = '#00ff41'; ctx.shadowBlur = 10; }
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR);
+        ctx.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    // Pontos cardeais com bloom
+    const cardinals = [
+        { label: 'N', angle: 0, main: true },
+        { label: 'E', angle: 90 },
+        { label: 'S', angle: 180 },
+        { label: 'W', angle: 270 }
+    ];
+    cardinals.forEach(c => {
+        const angle = (c.angle * Math.PI) / 180;
+        ctx.fillStyle = c.main ? '#7dffb0' : 'rgba(0,255,65,0.7)';
+        ctx.shadowColor = '#00ff41';
+        ctx.shadowBlur = c.main ? 18 : 8;
+        ctx.font = `bold ${c.main ? 24 : 16}px "Courier New", monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const textR = radius - 30;
+        ctx.fillText(c.label, Math.cos(angle) * textR, Math.sin(angle) * textR);
+        ctx.shadowBlur = 0;
+    });
+
+    ctx.fillStyle = 'rgba(0,255,65,0.45)';
+    ctx.font = '8px "Courier New", monospace';
+    for (let i = 0; i < 360; i += 30) {
+        if (i % 90 !== 0) {
+            const angle = (i * Math.PI) / 180;
+            const textR = radius - 22;
+            ctx.save();
+            ctx.translate(Math.cos(angle) * textR, Math.sin(angle) * textR);
+            ctx.rotate((currentHeading * Math.PI) / 180);
+            ctx.fillText(i.toString(), 0, 0);
+            ctx.restore();
+        }
+    }
+
+    ctx.restore();
+
+    // ---- AGULHA COM VOLUME 3D (gradiente + sombra dupla) ----
+    const needleLen = radius * 0.56;
+    ctx.save();
+    ctx.translate(centerX, centerY);
+
+    // Sombra projetada da agulha (dá sensação de estar "flutuando" sobre o disco)
+    ctx.save();
+    ctx.translate(2, 3);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, -needleLen);
+    ctx.lineTo(0, 10);
+    ctx.stroke();
+    ctx.restore();
+
+    const needleGrad = ctx.createLinearGradient(0, -needleLen, 0, 10);
+    needleGrad.addColorStop(0, '#c8ffe0');
+    needleGrad.addColorStop(0.4, '#00ff41');
+    needleGrad.addColorStop(1, '#00701f');
+
+    ctx.strokeStyle = needleGrad;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#00ff41';
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.moveTo(0, -needleLen);
+    ctx.lineTo(0, 10);
+    ctx.stroke();
+
+    ctx.fillStyle = needleGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, -needleLen);
+    ctx.lineTo(-6, -needleLen + 15);
+    ctx.lineTo(6, -needleLen + 15);
+    ctx.closePath();
+    ctx.fill();
+
+    // Pino central metálico
+    ctx.shadowBlur = 6;
+    const pinGrad = ctx.createRadialGradient(-2, -2, 1, 0, 0, 8);
+    pinGrad.addColorStop(0, '#ffffff');
+    pinGrad.addColorStop(0.4, '#7dffb0');
+    pinGrad.addColorStop(1, '#00701f');
+    ctx.fillStyle = pinGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    const heading = Math.round(currentHeading);
+    directionEl.textContent = getDirection(heading);
+    degreesEl.textContent = heading + '°';
+}
+
+function getDirection(deg) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8];
+}
+
+draw();
+</script>
+</body>
+</html>

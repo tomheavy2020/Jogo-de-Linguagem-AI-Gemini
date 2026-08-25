@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MATRIX OS - PLANOS DE ASSINATURA</title>
+    <style>
+        :root {
+            --neon: #00ff41;
+            --neon-bright: #7dffb0;
+            --neon-cyan: #00f0ff;
+            --neon-gold: #ffb000;
+            --neon-red: #ff3b3b;
+            --bg: #000;
+            --panel: rgba(0, 10, 0, 0.92);
+            --border: rgba(0, 255, 65, 0.3);
+            --border-gold: rgba(255, 176, 0, 0.5);
+            --text: #e8f5e9;
+            --text-dim: rgba(0, 255, 65, 0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: radial-gradient(ellipse at 50% 0%, #0a1a0a 0%, #000 60%);
+            color: var(--text); font-family: 'Courier New', monospace;
+            min-height: 100dvh; -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .pricing-container {
+            display: flex; flex-direction: column;
+            max-width: 1100px; margin: 0 auto;
+            padding: 20px 16px; gap: 20px;
+        }
+
+        /* ============ HEADER ============ */
+        .pricing-header {
+            text-align: center; padding: 10px 0;
+        }
+        .pricing-title {
+            font-size: 28px; font-weight: bold; letter-spacing: 4px;
+            color: var(--neon-bright);
+            text-shadow: 0 0 30px var(--neon), 0 0 60px rgba(0,255,65,0.4);
+        }
+        .pricing-subtitle {
+            font-size: 11px; color: var(--text-dim);
+            margin-top: 6px; letter-spacing: 2px;
+        }
+        .ceo-btn {
+            position: fixed; top: 12px; right: 12px; z-index: 1000;
+            background: var(--neon-red); border: none; color: #fff;
+            padding: 6px 14px; border-radius: 20px;
+            font-family: inherit; font-size: 9px; cursor: pointer;
+            box-shadow: 0 0 15px rgba(255,59,59,0.5);
+            letter-spacing: 1px;
+        }
+
+        /* ============ COMPARAÇÃO RÁPIDA ============ */
+        .comparison-bar {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 14px; padding: 10px 16px;
+            font-size: 10px; color: var(--text-dim);
+            text-align: center; letter-spacing: 1px;
+        }
+        .comparison-bar .highlight {
+            color: var(--neon-gold);
+            font-weight: bold;
+        }
+
+        /* ============ GRID DE PLANOS ============ */
+        .plans-grid {
+            display: grid; grid-template-columns: 1fr;
+            gap: 16px; align-items: stretch;
+        }
+
+        @media (min-width: 768px) {
+            .plans-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 20px;
+            }
+        }
+
+        /* ============ CARD DE PLANO ============ */
+        .plan-card {
+            background: var(--panel); border: 2px solid var(--border);
+            border-radius: 20px; padding: 20px;
+            position: relative; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex; flex-direction: column;
+        }
+        .plan-card:active {
+            transform: scale(0.97);
+            box-shadow: 0 0 30px rgba(0,255,65,0.3);
+        }
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,255,65,0.2);
+        }
+        .plan-card.selected {
+            border-color: var(--neon);
+            box-shadow: 0 0 40px rgba(0,255,65,0.5);
+        }
+
+        /* Card ANUAL (destaque) */
+        .plan-card.annual {
+            border-color: var(--border-gold);
+            box-shadow: 0 0 40px rgba(255,176,0,0.3);
+            transform: scale(1);
+        }
+        @media (min-width: 768px) {
+            .plan-card.annual {
+                transform: scale(1.05);
+            }
+        }
+        .plan-card.annual:hover {
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 40px rgba(255,176,0,0.4);
+            transform: scale(1.07);
+        }
+
+        .plan-badge {
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            background: var(--neon-gold); color: #000;
+            padding: 4px 14px; border-radius: 20px;
+            font-size: 9px; font-weight: bold;
+            letter-spacing: 2px; white-space: nowrap;
+            box-shadow: 0 0 20px rgba(255,176,0,0.6);
+        }
+
+        .plan-name {
+            font-size: 16px; font-weight: bold;
+            letter-spacing: 2px; margin-top: 8px;
+        }
+        .plan-card.annual .plan-name {
+            color: var(--neon-gold);
+        }
+
+        .plan-price {
+            font-size: 34px; font-weight: bold;
+            margin: 10px 0; text-shadow: 0 0 20px var(--neon);
+        }
+        .plan-card.annual .plan-price {
+            text-shadow: 0 0 20px var(--neon-gold);
+            color: var(--neon-gold);
+        }
+        .plan-price .currency { font-size: 16px; }
+        .plan-price .period { font-size: 11px; color: var(--text-dim); }
+
+        .plan-savings {
+            font-size: 10px; color: var(--neon-gold);
+            margin: 4px 0; font-weight: bold;
+        }
+
+        /* Recursos */
+        .plan-features {
+            list-style: none; padding: 0;
+            flex: 1; margin-top: 12px;
+        }
+        .plan-features li {
+            font-size: 10px; padding: 5px 0;
+            color: rgba(0,255,65,0.75);
+            display: flex; align-items: flex-start; gap: 8px;
+            line-height: 1.4;
+        }
+        .plan-features li::before {
+            content: '✓';
+            color: var(--neon);
+            font-weight: bold;
+            flex-shrink: 0;
+            text-shadow: 0 0 5px var(--neon);
+        }
+        .plan-card.annual .plan-features li::before {
+            color: var(--neon-gold);
+            text-shadow: 0 0 5px var(--neon-gold);
+        }
+
+        /* Botão CTA */
+        .plan-cta {
+            padding: 14px; border-radius: 14px;
+            border: none; cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: bold;
+            letter-spacing: 2px; margin-top: 16px;
+            transition: all 0.3s; text-transform: uppercase;
+        }
+        .plan-cta:active { transform: scale(0.95); }
+
+        .plan-cta.free {
+            background: transparent; border: 2px solid var(--border);
+            color: var(--neon);
+        }
+        .plan-cta.premium {
+            background: linear-gradient(160deg, #0a3a0a, var(--neon));
+            color: #000; box-shadow: 0 0 20px rgba(0,255,65,0.4);
+        }
+        .plan-cta.annual {
+            background: linear-gradient(160deg, #3a2a00, var(--neon-gold));
+            color: #000; box-shadow: 0 0 30px rgba(255,176,0,0.5);
+            font-size: 14px; padding: 16px;
+        }
+        .plan-cta.annual:active {
+            box-shadow: 0 0 50px rgba(255,176,0,0.8);
+        }
+
+        /* ============ RODAPÉ ============ */
+        .pricing-footer {
+            text-align: center; padding: 10px 0;
+            font-size: 9px; color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+        .pricing-footer .lock {
+            font-size: 14px; margin-right: 4px;
+        }
+    </style>
+</head>
+<body>
+    <button class="ceo-btn" onclick="ceoAccess()">🔴 CEO</button>
+
+    <div class="pricing-container">
+        <div class="pricing-header">
+            <div class="pricing-title">MATRIX OS</div>
+            <div class="pricing-subtitle">ESCOLHA SEU PLANO DE ACESSO</div>
+        </div>
+
+        <div class="comparison-bar">
+            ⚡ <span class="highlight">Premium</span> desbloqueia: OSINT completo • Náutico • Câmera 360 • Lanterna PRO
+        </div>
+
+        <div class="plans-grid">
+            <!-- PLANO FREE -->
+            <div class="plan-card" onclick="selectPlan('free', this)">
+                <div class="plan-name">🆓 MATRIX FREE</div>
+                <div class="plan-price"><span class="currency">R$</span> 0 <span class="period">/mês</span></div>
+                <ul class="plan-features">
+                    <li>Acesso aos jogos básicos</li>
+                    <li>Xadrez 3D, Arena, Ranking</li>
+                    <li>Anúncios leves</li>
+                    <li>1 dispositivo</li>
+                </ul>
+                <button class="plan-cta free">Assinar Free</button>
+            </div>
+
+            <!-- PLANO PREMIUM -->
+            <div class="plan-card" onclick="selectPlan('monthly', this)">
+                <div class="plan-name">⚡ MATRIX PREMIUM</div>
+                <div class="plan-price"><span class="currency">R$</span> 20 <span class="period">/mês</span></div>
+                <ul class="plan-features">
+                    <li>Tudo do Free + sem anúncios</li>
+                    <li>OSINT completo (whois, dns, scan)</li>
+                    <li>Náutico completo (AIS, marés)</li>
+                    <li>Câmera 360 + filtros PRO</li>
+                    <li>Lanterna com modo música</li>
+                    <li>Até 3 dispositivos</li>
+                </ul>
+                <button class="plan-cta premium">Assinar Premium</button>
+            </div>
+
+            <!-- PLANO ANUAL (DESTAQUE) -->
+            <div class="plan-card annual" onclick="selectPlan('annual', this)">
+                <div class="plan-badge">👑 MELHOR OFERTA</div>
+                <div class="plan-name">👑 MATRIX ANUAL</div>
+                <div class="plan-price"><span class="currency">R$</span> 180 <span class="period">/ano</span></div>
+                <div class="plan-savings">💰 Economia de R$ 60 vs mensal</div>
+                <div class="plan-savings">Equivale a R$ 15/mês (25% OFF)</div>
+                <ul class="plan-features">
+                    <li>Tudo do Premium</li>
+                    <li>Economia de 25%</li>
+                    <li>Prioridade em novos recursos</li>
+                    <li>Suporte prioritário</li>
+                    <li>Até 5 dispositivos</li>
+                    <li>Badge exclusivo 👑</li>
+                </ul>
+                <button class="plan-cta annual">Assinar Anual</button>
+            </div>
+        </div>
+
+        <div class="pricing-footer">
+            <span class="lock">🔒</span> Cancele a qualquer momento • Renovação automática • Pagamento seguro
+        </div>
+    </div>
+
+<script>
+// ================= SELEÇÃO DE PLANOS =================
+let selectedPlan = 'free';
+
+function selectPlan(plan, element) {
+    selectedPlan = plan;
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    element.classList.add('selected');
+    if(navigator.vibrate) navigator.vibrate(50);
+}
+
+// Ações dos botões CTA
+document.querySelectorAll('.plan-cta').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = btn.closest('.plan-card');
+        selectPlan(
+            card.classList.contains('annual') ? 'annual' :
+            card.querySelector('.plan-name').textContent.includes('PREMIUM') ? 'monthly' : 'free',
+            card
+        );
+        confirmPlan();
+    });
+});
+
+function confirmPlan() {
+    const planNames = {
+        free: 'MATRIX FREE',
+        monthly: 'MATRIX PREMIUM (R$20/mês)',
+        annual: 'MATRIX ANUAL (R$180/ano - economia R$60)'
+    };
+
+    if(selectedPlan === 'free') {
+        localStorage.setItem('matrix_plan', 'free');
+        window.location.href = '/index.html';
+        return;
+    }
+
+    if(confirm(`Confirmar assinatura: ${planNames[selectedPlan]}?`)) {
+        localStorage.setItem('matrix_plan', selectedPlan);
+        localStorage.setItem('matrix_plan_date', new Date().toISOString());
+        alert('✅ Assinatura ativada!\n\n(Em produção: integrar com Stripe, Pix ou Google Play Billing)');
+        window.location.href = '/index.html';
+    }
+}
+
+function ceoAccess() {
+    localStorage.setItem('matrix_plan', 'ceo');
+    localStorage.setItem('matrix_ceo', 'true');
+    localStorage.setItem('matrix_plan_date', new Date().toISOString());
+    window.location.href = '/index.html';
+}
+
+// Verificar se já tem plano salvo
+const savedPlan = localStorage.getItem('matrix_plan');
+if(savedPlan && savedPlan !== 'free' && savedPlan !== 'ceo') {
+    window.location.href = '/index.html';
+}
+</script>
+</body>
+</html>

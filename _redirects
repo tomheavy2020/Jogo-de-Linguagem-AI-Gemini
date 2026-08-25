@@ -1,0 +1,6 @@
+# Redirecionar a raiz para boot.html
+/ /boot.html 200
+# Manter acesso ao index.html
+/index.html /index.html 200
+# Manter acesso ao boot.html
+/boot.html /boot.html 200

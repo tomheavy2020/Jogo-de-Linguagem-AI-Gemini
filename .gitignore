@@ -1,0 +1,45 @@
+# Backups
+*.tar.gz
+*.zip
+*.bak
+*.bkp
+backup_*/
+backups/
+projeto_backup_*/
+matrix_backup/
+restauracao_tmp/
+index_*.html
+index_*.css
+
+# Dependências
+node_modules/
+package-lock.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos grandes
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.mp3
+.env
+.well-known/
+*_particulas.sh
+corrigir_particulas.sh
+limpar_git.sh
+mover_css_final.sh
+organizar.sh
+resetar_git.sh
+instalar_novos_apps.sh
+.env
+.well-known/
+node_modules/
+*.mp4
+*.log
+nohup.out
+BACKUP_TOTAL_*
+backup_*
