@@ -61,6 +61,12 @@ app.get('/api/weather/tile/:layer/:z/:x/:y', async (req, res) => {
     }
 });
 
+
+// Middleware de estatísticas online
+app.get('/api/online', (req, res) => {
+    return res.json({ count: 1 });
+});
+
 app.get('/api/weather', async (req, res) => {
     try {
         const { lat, lon, city } = req.query;

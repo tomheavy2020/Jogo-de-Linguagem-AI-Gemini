@@ -21,8 +21,7 @@ function initWebSocket(server) {
                 if (msgStr.startsWith('TERM_CMD::')) {
                     const cmdText = msgStr.replace('TERM_CMD::', '').trim();
                     if (commandRouter && typeof commandRouter.handleCommand === 'function') {
-                        const result = await commandRouter.handleCommand(cmdText);
-                        ws.send(`TERM_RESULT::${result}`);
+                        await commandRouter.handleCommand(ws, cmdText, null);
                     } else {
                         ws.send(`TERM_RESULT::[COMANDO PROCESSADO]: ${cmdText}`);
                     }
@@ -43,7 +42,7 @@ function initWebSocket(server) {
 }
 
 function broadcastOnlineCount(wss) {
-    const payload = JSON.stringify({ type: 'ONLINE_COUNT', count: activeConnections });
+    const payload = JSON.stringify({ type: 'online_count', count: activeConnections });
     wss.clients.forEach((client) => {
         if (client.readyState === 1) {
             client.send(payload);

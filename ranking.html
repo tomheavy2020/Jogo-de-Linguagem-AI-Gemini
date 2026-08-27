@@ -211,7 +211,7 @@ async function loadRanking(game = 'all') {
             badge: p.points > 9000 ? '🏆' : p.points > 5000 ? '⚡' : '🎮',
             avatar: (p.userId || 'J')[0].toUpperCase()
         }));
-        loadRanking('all');
+        // Ranking carregado com sucesso
     } catch(e) {
         console.log('Offline - usando dados locais');
         players = JSON.parse(localStorage.getItem('matrixRanking') || '[]');
@@ -223,7 +223,7 @@ async function loadRanking(game = 'all') {
             ];
         }
         renderPodium();
-        renderRankList();
+        renderList();
     }
 }
 
@@ -247,7 +247,6 @@ function renderPodium() {
                 <span class="podium-name">${third.name}</span>
                 <span class="podium-points">${third.points}</span>
             </div>`;
-    }
 }
 
 function renderList() {
@@ -294,5 +293,6 @@ function showToast(msg) {
 renderPodium();
 renderList();
 </script>
+<script src="/fullscreen-helper.js"></script>
 </body>
 </html>

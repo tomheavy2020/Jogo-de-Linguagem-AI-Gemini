@@ -385,11 +385,11 @@ function makeLayer(layerName, opacity) {
   return L.tileLayer(`/api/weather/tile/${layerName}/{z}/{x}/{y}`, { maxZoom: 19, opacity: opacity, attribution: 'OWM' });
 }
 const layers = {
-  clouds: L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.30 }),
-  rain: L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.50 }),
-  heat: L.tileLayer('https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.40 }),
-  wind: L.tileLayer('https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.40 }),
-  pressure: L.tileLayer('https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png', { maxZoom: 19, opacity: 0.35 })
+  clouds: L.tileLayer('/api/weather/tile/clouds_new/{z}/{x}/{y}', { maxZoom: 19, opacity: 0.30 }),
+  rain: L.tileLayer('/api/weather/tile/precipitation_new/{z}/{x}/{y}', { maxZoom: 19, opacity: 0.50 }),
+  heat: L.tileLayer('/api/weather/tile/temp_new/{z}/{x}/{y}', { maxZoom: 19, opacity: 0.40 }),
+  wind: L.tileLayer('/api/weather/tile/wind_new/{z}/{x}/{y}', { maxZoom: 19, opacity: 0.40 }),
+  pressure: L.tileLayer('/api/weather/tile/pressure_new/{z}/{x}/{y}', { maxZoom: 19, opacity: 0.35 })
 };
 
 const layerState = { clouds: false, rain: false, heat: false, wind: false, pressure: false };
@@ -532,5 +532,6 @@ window.addEventListener('load', () => {
   setTimeout(() => document.getElementById('loader').classList.add('hidden'), 1500);
 });
 </script>
+<script src="/fullscreen-helper.js"></script>
 </body>
 </html>
