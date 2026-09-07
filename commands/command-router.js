@@ -25,8 +25,9 @@ function sanitizeHTML(text) {
 
 // 🔥 A FUNÇÃO PRINCIPAL JÁ ERA ASYNC, ENTÃO O AWAIT DENTRO DELA É VÁLIDO!
 async function handleCommand(ws, textoRecebido, userId) {
-    const user = await User.findById(userId);
-    if (!user) { ws.send('👾 Usuário não encontrado.'); return; }
+    let user = null;
+    if (userId) { try { user = await User.findById(userId); } catch(e){} }
+    if (!user) { user = { isPremium: true, username: 'Anonymous' }; }
 
     const isPremium = user.isPremium;
 

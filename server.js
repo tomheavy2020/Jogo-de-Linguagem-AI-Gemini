@@ -63,6 +63,17 @@ app.get('/api/weather/tile/:layer/:z/:x/:y', async (req, res) => {
 
 
 // Middleware de estatísticas online
+
+// OTA Versioning and Update Check Endpoint
+app.get('/api/version', (req, res) => {
+    return res.json({
+        version: '3.1.1',
+        build: 'PRO',
+        ota_status: 'UP_TO_DATE',
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.get('/api/online', (req, res) => {
     return res.json({ count: 1 });
 });
